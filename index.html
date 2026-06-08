@@ -94,5 +94,19 @@
     <!-- DB Seeding and Navigation Scripts -->
     <script src="js/db.js"></script>
     <script src="js/landing.js"></script>
+    <script>
+    // Redirect logged-in users straight to dashboard
+    if (localStorage.getItem('bfx_token')) {
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('btn-hero-start');
+            if(btn) { btn.textContent = 'Go to Dashboard'; btn.onclick = () => window.location.href='/setup.html'; }
+        });
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('btn-hero-start');
+            if(btn) btn.onclick = () => window.location.href='/login.html';
+        });
+    }
+    </script>
 </body>
 </html>
