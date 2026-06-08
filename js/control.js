@@ -152,6 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
             duration: parseInt(document.getElementById('wiz-input-duration').value) || 45,
             status: 'ready',
             currentTime: 0,
+            kickoffAt: null,       // timestamp when match started
+            totalPausedMs: 0,      // total ms spent paused
+            pauseStartAt: null,    // timestamp when current pause began
             scoreA: 0,
             scoreB: 0,
             stats: {
@@ -213,6 +216,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------
     let liveClockInterval = null;
 
+    // ─── TIMESTAMP-BASED ELAPSED TIME ──────────────────────────
+    // Returns real elapsed seconds based on kickoff timestamp
+    // Works even after page close — clock kept by real wall time
+    const getElapsedSeconds = () => {
+        if (!matchState.kickoffAt) return matchState.currentTime || 0;
+        const pausedMs = matchState.totalPausedMs || 0;
+        if (!matchState.timerRunning && matchState.pauseStartAt) {
+            // Clock is paused — elapsed is frozen at pause moment
+            return Math.floor((matchState.pauseStartAt - matchState.kickoffAt - pausedMs) / 1000);
+        }
+        // Clock is running — calculate from now
+        return Math.floor((Date.now() - matchState.kickoffAt - pausedMs) / 1000);
+    };
+
     // Trigger Kickoff whistle start
     document.getElementById('btn-kickoff-action').addEventListener('click', () => {
         // Play Referee whistle sound
@@ -224,7 +241,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set match active
         matchState.status = 'live';
         matchState.timerRunning = true;
+        matchState.kickoffAt = matchState.kickoffAt || Date.now(); // set once
+        matchState.totalPausedMs = matchState.totalPausedMs || 0;
+        matchState.pauseStartAt = null;
         DB.saveMatchState(matchState);
+        // Save to server immediately on kick-off
+        if (window.apiFetch) {
+            window.apiFetch('/api/data/match_state', {
+                method: 'POST',
+                body: JSON.stringify({ data: matchState })
+            }).catch(e => console.warn('Server sync failed:', e));
+        }
 
         // Hide setup screen & show dashboard
         wizardContainer.style.display = 'none';
@@ -278,42 +305,65 @@ document.addEventListener('DOMContentLoaded', () => {
     const startMatchClockTimer = () => {
         if (liveClockInterval) clearInterval(liveClockInterval);
 
-        // Set initial button visuals
         btnClockPlay.style.display = 'none';
         btnClockPause.style.display = 'block';
 
+        // Timestamp-based: calculate real elapsed time every second
+        // Works after page close/reopen — no counting, just math
         liveClockInterval = setInterval(() => {
-            if (matchState.timerRunning) {
-                matchState.currentTime += 1;
-                
-                // Print formatted readout
-                lblLiveTimer.textContent = DB.formatMatchTime(matchState.currentTime);
-                
-                // Write back to DB every second
-                DB.saveMatchState(matchState);
+            if (!matchState.timerRunning) return;
 
-                // Auto boundary half-time trigger alert
-                const halfSeconds = matchState.duration * 60;
-                if (matchState.currentTime === halfSeconds) {
-                    pauseClockTimer();
-                    logMatchTimelineEvent('Half Time Ends', 'info', { desc: 'First Half Complete' });
-                    alert("First Half Finished! Press 'Next Half' to begin 2nd session.");
-                }
+            const elapsed = getElapsedSeconds();
+            matchState.currentTime = elapsed;
+            lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
+
+            // Save to localStorage every 5 seconds to reduce writes
+            if (elapsed % 5 === 0) {
+                DB.saveMatchState(matchState);
+            }
+
+            // Half-time boundary check
+            const halfSeconds = matchState.duration * 60;
+            if (elapsed >= halfSeconds && matchState.currentHalf === 1) {
+                pauseClockTimer();
+                logMatchTimelineEvent('Half Time', 'info', { desc: 'First Half Complete' });
+                alert("First Half Finished! Press 'Next Half' to begin 2nd session.");
             }
         }, 1000);
     };
 
     const pauseClockTimer = () => {
         matchState.timerRunning = false;
+        matchState.pauseStartAt = Date.now(); // record when pause began
+        matchState.currentTime = getElapsedSeconds(); // freeze time
         DB.saveMatchState(matchState);
+        // Save to server immediately on pause
+        if (window.apiFetch) {
+            window.apiFetch('/api/data/match_state', {
+                method: 'POST',
+                body: JSON.stringify({ data: matchState })
+            }).catch(() => {});
+        }
         btnClockPlay.style.display = 'block';
         btnClockPause.style.display = 'none';
     };
 
     // Clock Button Listeners
     btnClockPlay.addEventListener('click', () => {
+        // Accumulate pause duration before resuming
+        if (matchState.pauseStartAt) {
+            matchState.totalPausedMs = (matchState.totalPausedMs || 0) + (Date.now() - matchState.pauseStartAt);
+            matchState.pauseStartAt = null;
+        }
         matchState.timerRunning = true;
         DB.saveMatchState(matchState);
+        // Save to server on resume
+        if (window.apiFetch) {
+            window.apiFetch('/api/data/match_state', {
+                method: 'POST',
+                body: JSON.stringify({ data: matchState })
+            }).catch(() => {});
+        }
         startMatchClockTimer();
     });
 
@@ -775,7 +825,44 @@ document.addEventListener('DOMContentLoaded', () => {
     bindGraphicToggleSwitch('toggle-graphic-vs', 'vs');
     bindGraphicToggleSwitch('toggle-graphic-stats', 'stats');
 
-    // Run wizard step 1
-    initWizard();
-    gotoStep(1);
+    // ─── PAGE LOAD: RESTORE SESSION FROM SERVER ─────────────
+    async function initPage() {
+        if (window.apiFetch) {
+            try {
+                const res = await window.apiFetch('/api/data/match_state');
+                const data = await res.json();
+                if (data.data && data.data.status === 'live') {
+                    matchState = data.data;
+                    DB.saveMatchState(matchState);
+                }
+            } catch(e) {
+                console.warn('Server load failed, using local state:', e);
+            }
+        }
+
+        initWizard();
+
+        if (matchState && matchState.status === 'live') {
+            wizardContainer.style.display = 'none';
+            liveDashboard.style.display = 'grid';
+            loadLiveControlPanelData();
+
+            // Recalculate real elapsed time from kickoff timestamp
+            const elapsed = getElapsedSeconds();
+            matchState.currentTime = elapsed;
+            lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
+            lblClockHalf.textContent = (matchState.currentHalf === 2) ? '2ND' : '1ST';
+
+            if (matchState.timerRunning) {
+                startMatchClockTimer();
+            } else {
+                btnClockPlay.style.display = 'block';
+                btnClockPause.style.display = 'none';
+            }
+        } else {
+            gotoStep(1);
+        }
+    }
+
+    initPage();
 });
