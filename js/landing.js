@@ -1,112 +1,37 @@
-// landing.js - Landing page auth navigation & antigravity physics engine
+// landing.js - Landing page navigation & antigravity physics engine
 
 // -------------------------------------------------------------
-// Part A: Login & Signup Modal Transitions
+// Part A: Button Navigation (redirects to /login or /setup)
 // -------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    const modalOverlay = document.getElementById('auth-modal-overlay');
-    const tabLogin = document.getElementById('tab-login');
-    const tabRegister = document.getElementById('tab-register');
-    const formLogin = document.getElementById('form-login');
-    const formRegister = document.getElementById('form-register');
-    
+    const isLoggedIn = !!localStorage.getItem('bfx_token');
+
     const btnHeaderLogin = document.getElementById('btn-header-login');
-    const btnHeroStart = document.getElementById('btn-hero-start');
+    const btnHeroStart   = document.getElementById('btn-hero-start');
     const btnHeroFeatures = document.getElementById('btn-hero-features');
 
-    const closeButtons = [
-        document.getElementById('btn-close-auth'),
-        document.getElementById('btn-close-auth2')
-    ];
+    if (btnHeaderLogin) {
+        btnHeaderLogin.textContent = isLoggedIn ? 'Dashboard' : 'Sign In';
+        btnHeaderLogin.addEventListener('click', () => {
+            window.location.href = isLoggedIn ? '/setup' : '/login';
+        });
+    }
 
-    // Show modal
-    const showModal = (mode = 'login') => {
-        modalOverlay.classList.add('active');
-        switchTab(mode);
-    };
+    if (btnHeroStart) {
+        btnHeroStart.textContent = isLoggedIn ? 'Go to Dashboard' : 'Launch Stream Dashboard';
+        btnHeroStart.addEventListener('click', () => {
+            window.location.href = isLoggedIn ? '/setup' : '/login';
+        });
+    }
 
-    // Hide modal
-    const hideModal = () => {
-        modalOverlay.classList.remove('active');
-    };
-
-    // Switch between login & register
-    const switchTab = (mode) => {
-        if (mode === 'login') {
-            tabLogin.classList.add('active');
-            tabRegister.classList.remove('active');
-            formLogin.style.display = 'block';
-            formRegister.style.display = 'none';
-        } else {
-            tabLogin.classList.remove('active');
-            tabRegister.classList.add('active');
-            formLogin.style.display = 'none';
-            formRegister.style.display = 'block';
-        }
-    };
-
-    // Listeners
-    btnHeaderLogin.addEventListener('click', () => showModal('login'));
-    btnHeroStart.addEventListener('click', () => showModal('login'));
-    
-    btnHeroFeatures.addEventListener('click', () => {
-        // Smooth scroll to features or pop alerts
-        const desc = document.querySelector('.hero-content p');
-        desc.style.color = '#10b981';
-        desc.style.textShadow = '0 0 10px rgba(16, 185, 129, 0.3)';
-        setTimeout(() => {
-            desc.style.color = '';
-            desc.style.textShadow = '';
-        }, 1500);
-        
-        // Push the ball towards them!
-        if (window.soccerBall) {
-            window.soccerBall.vx = (Math.random() - 0.5) * 20;
-            window.soccerBall.vy = -15;
-            window.soccerBall.angularVelocity = (Math.random() - 0.5) * 0.5;
-        }
-    });
-
-    tabLogin.addEventListener('click', () => switchTab('login'));
-    tabRegister.addEventListener('click', () => switchTab('register'));
-
-    closeButtons.forEach(btn => {
-        if (btn) btn.addEventListener('click', hideModal);
-    });
-
-    // Close on click outside modal card
-    modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) hideModal();
-    });
-
-    // Handle Mock Authentication Login Submit
-    formLogin.addEventListener('submit', () => {
-        // Simulate a beautiful modern loading transition
-        const submitBtn = document.getElementById('btn-submit-login');
-        submitBtn.innerHTML = '<span class="loading-spinner"></span> Connecting...';
-        submitBtn.disabled = true;
-        submitBtn.style.background = '#6b7280';
-        
-        setTimeout(() => {
-            // Redirect seamlessly to the Setup Page
-            window.location.href = 'setup.html';
-        }, 1200);
-    });
-
-    formRegister.addEventListener('submit', () => {
-        const submitBtn = document.getElementById('btn-submit-register');
-        submitBtn.innerHTML = 'Registering Profile...';
-        submitBtn.disabled = true;
-        
-        setTimeout(() => {
-            // Redirect seamlessly to the Setup Page
-            window.location.href = 'setup.html';
-        }, 1200);
-    });
+    if (btnHeroFeatures) {
+        btnHeroFeatures.addEventListener('click', () => {
+            const footer = document.querySelector('.hero-footer');
+            if (footer) footer.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 });
 
-
-// -------------------------------------------------------------
 // Part B: Antigravity Physics-based Interactive Football Engine
 // -------------------------------------------------------------
 (function() {
@@ -806,4 +731,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Start
     loop();
 })();
-
