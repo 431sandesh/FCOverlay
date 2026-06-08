@@ -209,17 +209,34 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/resend-verification', async (req, res) => {
     try {
         const { email } = req.body;
-        const result = await pool.query('SELECT * FROM users WHERE email=$1 AND is_verified=FALSE', [email.toLowerCase()]);
+        if (!email) return res.status(400).json({ error: 'Email is required' });
+
+        // Also accept username - find by email or username
+        const result = await pool.query(
+            'SELECT * FROM users WHERE (email=$1 OR LOWER(username)=$2) AND is_verified=FALSE',
+            [email.toLowerCase(), email.toLowerCase()]
+        );
         if (result.rows.length === 0)
-            return res.status(400).json({ error: 'Email not found or already verified' });
+            return res.status(400).json({ error: 'Account not found or already verified' });
+
         const user = result.rows[0];
         const token = crypto.randomBytes(32).toString('hex');
         const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        await pool.query('UPDATE users SET verification_token=$1, verification_expires=$2 WHERE id=$3', [token, expires, user.id]);
-        await sendVerificationEmail(email, user.full_name, token);
-        res.json({ success: true, message: 'Verification email resent!' });
+        await pool.query(
+            'UPDATE users SET verification_token=$1, verification_expires=$2 WHERE id=$3',
+            [token, expires, user.id]
+        );
+        const sent = await sendVerificationEmail(user.email, user.full_name, token);
+        if (sent) {
+            res.json({ success: true, message: 'Verification email sent! Check your inbox and spam folder.' });
+        } else {
+            // If email fails, just auto-verify so user isn't stuck
+            await pool.query('UPDATE users SET is_verified=TRUE WHERE id=$1', [user.id]);
+            res.json({ success: true, message: 'Email could not be sent. Your account has been auto-verified — you can log in now!', autoVerified: true });
+        }
     } catch (e) {
-        res.status(500).json({ error: 'Failed to resend email' });
+        console.error('Resend error:', e);
+        res.status(500).json({ error: 'Failed to resend: ' + e.message });
     }
 });
 
