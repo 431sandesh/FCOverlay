@@ -45,13 +45,7 @@
         </footer>
     </div>
 
-    <!-- Glassmorphic Auth Modal -->
-    <div class="modal-overlay" id="auth-modal-overlay">
-        <div class="glass-panel auth-modal">
-            <div class="auth-tabs">
-                <div class="auth-tab active" id="tab-login">Sign In</div>
-                <div class="auth-tab" id="tab-register">Create Account</div>
-            </div>
+
 
             <!-- Login Form -->
             <form id="form-login" onsubmit="event.preventDefault();">
@@ -95,18 +89,32 @@
     <script src="js/db.js"></script>
     <script src="js/landing.js"></script>
     <script>
-    // Redirect logged-in users straight to dashboard
-    if (localStorage.getItem('bfx_token')) {
-        document.addEventListener('DOMContentLoaded', () => {
-            const btn = document.getElementById('btn-hero-start');
-            if(btn) { btn.textContent = 'Go to Dashboard'; btn.onclick = () => window.location.href='/setup.html'; }
-        });
-    } else {
-        document.addEventListener('DOMContentLoaded', () => {
-            const btn = document.getElementById('btn-hero-start');
-            if(btn) btn.onclick = () => window.location.href='/login.html';
-        });
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const isLoggedIn = !!localStorage.getItem('bfx_token');
+
+        // Sign In button → /login
+        const btnLogin = document.getElementById('btn-header-login');
+        if (btnLogin) {
+            btnLogin.textContent = isLoggedIn ? 'Dashboard' : 'Sign In';
+            btnLogin.onclick = () => window.location.href = isLoggedIn ? '/setup' : '/login';
+        }
+
+        // Launch button → /login or /setup
+        const btnStart = document.getElementById('btn-hero-start');
+        if (btnStart) {
+            btnStart.textContent = isLoggedIn ? 'Go to Dashboard' : 'Launch Stream Dashboard';
+            btnStart.onclick = () => window.location.href = isLoggedIn ? '/setup' : '/login';
+        }
+
+        // Features button → scroll down
+        const btnFeatures = document.getElementById('btn-hero-features');
+        if (btnFeatures) {
+            btnFeatures.onclick = () => {
+                const footer = document.querySelector('.hero-footer');
+                if (footer) footer.scrollIntoView({ behavior: 'smooth' });
+            };
+        }
+    });
     </script>
 </body>
 </html>
