@@ -6,32 +6,153 @@
     <title>BhakundoFX | Sign In</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-        .auth-wrap { width:100%; max-width:420px; padding:20px; }
-        .auth-logo { text-align:center; margin-bottom:28px; }
-        .auth-logo img { height:60px; object-fit:contain; }
-        .auth-box { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:32px; backdrop-filter:blur(20px); }
-        .auth-tabs { display:flex; gap:0; margin-bottom:28px; background:rgba(0,0,0,0.3); border-radius:8px; padding:4px; }
-        .auth-tab { flex:1; padding:10px; text-align:center; border-radius:6px; cursor:pointer; font-size:0.9rem; font-weight:600; color:var(--color-text-dim); transition:all 0.2s; }
-        .auth-tab.active { background:var(--color-accent); color:#000; }
-        .form-group { margin-bottom:18px; }
-        .form-group label { display:block; font-size:0.8rem; color:var(--color-text-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
-        .form-group input { width:100%; padding:12px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; font-size:0.95rem; box-sizing:border-box; transition:border-color 0.2s; }
-        .form-group input:focus { outline:none; border-color:var(--color-accent); }
-        .btn-auth { width:100%; padding:13px; background:var(--color-accent); color:#000; font-weight:700; border:none; border-radius:8px; font-size:1rem; cursor:pointer; transition:opacity 0.2s; margin-top:6px; }
-        .btn-auth:hover { opacity:0.85; }
-        .btn-auth:disabled { opacity:0.5; cursor:not-allowed; }
-        .auth-msg { padding:12px 14px; border-radius:8px; font-size:0.875rem; margin-bottom:18px; display:none; }
+        * { box-sizing: border-box; }
+        body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+
+        .back-btn {
+            position: fixed; top: 20px; left: 20px;
+            display: flex; align-items: center; gap: 8px;
+            color: var(--color-text-dim); text-decoration: none;
+            font-size: 0.875rem; font-weight: 500;
+            padding: 8px 14px; border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.2s; z-index: 10;
+        }
+        .back-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .back-btn svg { width:16px; height:16px; }
+
+        .auth-wrap { width:100%; max-width:460px; }
+
+        .auth-logo { text-align:center; margin-bottom:24px; }
+        .auth-logo img { height:56px; object-fit:contain; }
+
+        .auth-box {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; padding: 28px;
+            backdrop-filter: blur(20px);
+        }
+
+        .auth-tabs {
+            display: flex; gap: 4px; margin-bottom: 24px;
+            background: rgba(0,0,0,0.3); border-radius: 10px; padding: 4px;
+        }
+        .auth-tab {
+            flex: 1; padding: 10px; text-align: center; border-radius: 7px;
+            cursor: pointer; font-size: 0.875rem; font-weight: 600;
+            color: var(--color-text-dim); transition: all 0.2s;
+        }
+        .auth-tab.active { background: var(--color-accent); color: #000; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.75rem; color: var(--color-text-dim);
+            margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+        }
+        .form-group input {
+            width: 100%; padding: 11px 14px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; color: #fff; font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: var(--color-accent); }
+        .form-group input::placeholder { color: rgba(255,255,255,0.25); }
+
+        .pass-wrap { position: relative; }
+        .pass-wrap input { padding-right: 44px; }
+        .eye-btn {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: var(--color-text-dim);
+            cursor: pointer; padding: 4px; display: flex; align-items: center;
+            transition: color 0.2s;
+        }
+        .eye-btn:hover { color: #fff; }
+        .eye-btn svg { width: 18px; height: 18px; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* Profile photo upload */
+        .photo-upload-wrap {
+            display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+            padding: 14px; background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.12); border-radius: 10px;
+        }
+        .photo-preview {
+            width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+            background: var(--color-accent); display: flex; align-items: center;
+            justify-content: center; font-weight: 700; font-size: 1.3rem; color: #000;
+            overflow: hidden; border: 2px solid rgba(16,185,129,0.4);
+        }
+        .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .photo-upload-info { flex: 1; }
+        .photo-upload-info p { font-size: 0.8rem; color: var(--color-text-dim); margin: 0 0 8px; }
+        .btn-upload-photo {
+            padding: 7px 14px; background: rgba(16,185,129,0.15);
+            border: 1px solid rgba(16,185,129,0.3); border-radius: 6px;
+            color: var(--color-accent); font-size: 0.8rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-upload-photo:hover { background: rgba(16,185,129,0.25); }
+        #photo-file-input { display: none; }
+
+        .btn-auth {
+            width: 100%; padding: 13px;
+            background: var(--color-accent); color: #000;
+            font-weight: 700; border: none; border-radius: 8px;
+            font-size: 0.95rem; cursor: pointer; transition: opacity 0.2s; margin-top: 4px;
+        }
+        .btn-auth:hover { opacity: 0.85; }
+        .btn-auth:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .auth-msg {
+            padding: 11px 14px; border-radius: 8px; font-size: 0.85rem;
+            margin-bottom: 16px; display: none; line-height: 1.4;
+        }
         .auth-msg.success { background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#10b981; }
-        .auth-msg.error { background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; }
-        .auth-msg.info { background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; }
-        .resend-link { font-size:0.8rem; color:var(--color-accent); cursor:pointer; text-align:center; margin-top:12px; display:none; }
-        .resend-link:hover { text-decoration:underline; }
-        .divider { text-align:center; color:var(--color-text-dim); font-size:0.8rem; margin:16px 0; }
+        .auth-msg.error   { background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; }
+        .auth-msg.info    { background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; }
+
+        .resend-link {
+            font-size: 0.8rem; color: var(--color-accent); cursor: pointer;
+            text-align: center; margin-top: 10px; display: none;
+        }
+        .resend-link:hover { text-decoration: underline; }
+
+        .form-divider {
+            height: 1px; background: rgba(255,255,255,0.07);
+            margin: 18px 0; position: relative;
+        }
+        .form-divider span {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: #0a0f0d; padding: 0 10px;
+            font-size: 0.75rem; color: var(--color-text-dim);
+        }
+
+        .username-hint {
+            font-size: 0.72rem; color: var(--color-text-dim);
+            margin-top: 4px; display: block;
+        }
+        .username-hint.ok { color: #10b981; }
+        .username-hint.err { color: #ef4444; }
+
+        /* Scrollable register form */
+        #form-register { max-height: 72vh; overflow-y: auto; padding-right: 4px; }
+        #form-register::-webkit-scrollbar { width: 4px; }
+        #form-register::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
     </style>
 </head>
 <body class="theme-cyber">
 <div class="stadium-beams"></div>
+
+<!-- Back Button -->
+<a href="/" class="back-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    Back to Home
+</a>
 
 <div class="auth-wrap">
     <div class="auth-logo">
@@ -46,176 +167,273 @@
 
         <div id="auth-message" class="auth-msg"></div>
 
-        <!-- LOGIN FORM -->
+        <!-- ── LOGIN FORM ── -->
         <div id="form-login">
             <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" id="login-email" placeholder="your@email.com">
+                <label>Username or Email</label>
+                <input type="text" id="login-id" placeholder="username or email@address.com" autocomplete="username">
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" id="login-pass" placeholder="••••••••">
+                <div class="pass-wrap">
+                    <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+                    <button class="eye-btn" type="button" onclick="togglePass('login-pass', this)">
+                        <svg id="eye-login" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <button class="btn-auth" id="btn-login">Enter Control Center</button>
-            <div class="resend-link" id="resend-link">Didn't receive verification email? Resend it</div>
+            <div class="resend-link" id="resend-link">Didn't receive verification email? Click to resend</div>
         </div>
 
-        <!-- REGISTER FORM -->
+        <!-- ── REGISTER FORM ── -->
         <div id="form-register" style="display:none;">
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" id="reg-name" placeholder="John Doe">
+
+            <!-- Profile Photo -->
+            <div class="photo-upload-wrap">
+                <div class="photo-preview" id="photo-preview-circle">
+                    <span id="photo-initials">?</span>
+                </div>
+                <div class="photo-upload-info">
+                    <p>Profile photo (optional)</p>
+                    <button class="btn-upload-photo" type="button" onclick="document.getElementById('photo-file-input').click()">
+                        Upload Photo
+                    </button>
+                    <input type="file" id="photo-file-input" accept="image/*">
+                </div>
             </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="reg-name" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Username *</label>
+                    <input type="text" id="reg-username" placeholder="johndoe" autocomplete="username">
+                    <span class="username-hint" id="username-hint">Letters, numbers, underscores only</span>
+                </div>
+            </div>
+
             <div class="form-group">
-                <label>Email Address</label>
+                <label>Organization / Club Name (optional)</label>
+                <input type="text" id="reg-org" placeholder="e.g. Kathmandu FC, ESPN Nepal">
+            </div>
+
+            <div class="form-group">
+                <label>Email Address *</label>
                 <input type="email" id="reg-email" placeholder="your@email.com">
             </div>
-            <div class="form-group">
-                <label>Password (min 6 characters)</label>
-                <input type="password" id="reg-pass" placeholder="••••••••">
+
+            <div class="form-divider"><span>Security</span></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Password *</label>
+                    <div class="pass-wrap">
+                        <input type="password" id="reg-pass" placeholder="Min 6 chars">
+                        <button class="eye-btn" type="button" onclick="togglePass('reg-pass', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password *</label>
+                    <div class="pass-wrap">
+                        <input type="password" id="reg-pass-confirm" placeholder="Repeat password">
+                        <button class="eye-btn" type="button" onclick="togglePass('reg-pass-confirm', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Confirm Password</label>
-                <input type="password" id="reg-pass-confirm" placeholder="••••••••">
-            </div>
+
             <button class="btn-auth" id="btn-register">Create Account</button>
         </div>
     </div>
 </div>
 
 <script>
-const tabLogin = document.getElementById('tab-login');
-const tabRegister = document.getElementById('tab-register');
-const formLogin = document.getElementById('form-login');
-const formRegister = document.getElementById('form-register');
-const msgBox = document.getElementById('auth-message');
-const resendLink = document.getElementById('resend-link');
+// ── EYE TOGGLE ──────────────────────────────────────────────
+function togglePass(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    btn.querySelector('svg').innerHTML = isPass
+        ? `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`
+        : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+    btn.querySelector('svg').setAttribute('fill', 'none');
+    btn.querySelector('svg').setAttribute('stroke', 'currentColor');
+    btn.querySelector('svg').setAttribute('stroke-width', '2');
+}
 
+// ── TABS ────────────────────────────────────────────────────
+document.getElementById('tab-login').addEventListener('click', () => switchTab('login'));
+document.getElementById('tab-register').addEventListener('click', () => switchTab('register'));
+
+function switchTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('tab-login').classList.toggle('active', isLogin);
+    document.getElementById('tab-register').classList.toggle('active', !isLogin);
+    document.getElementById('form-login').style.display = isLogin ? 'block' : 'none';
+    document.getElementById('form-register').style.display = isLogin ? 'none' : 'block';
+    hideMsg();
+}
+
+// ── MESSAGE ─────────────────────────────────────────────────
 function showMsg(text, type) {
-    msgBox.textContent = text;
-    msgBox.className = 'auth-msg ' + type;
-    msgBox.style.display = 'block';
+    const box = document.getElementById('auth-message');
+    box.textContent = text; box.className = 'auth-msg ' + type; box.style.display = 'block';
 }
-
 function hideMsg() {
-    msgBox.style.display = 'none';
-    resendLink.style.display = 'none';
+    document.getElementById('auth-message').style.display = 'none';
+    document.getElementById('resend-link').style.display = 'none';
 }
 
-tabLogin.addEventListener('click', () => {
-    tabLogin.classList.add('active');
-    tabRegister.classList.remove('active');
-    formLogin.style.display = 'block';
-    formRegister.style.display = 'none';
-    hideMsg();
-});
-
-tabRegister.addEventListener('click', () => {
-    tabRegister.classList.add('active');
-    tabLogin.classList.remove('active');
-    formRegister.style.display = 'block';
-    formLogin.style.display = 'none';
-    hideMsg();
-});
-
-// Check URL params for messages
+// ── URL PARAMS ──────────────────────────────────────────────
 const params = new URLSearchParams(window.location.search);
-if (params.get('verified') === 'true') {
-    showMsg('Email verified successfully! You can now sign in.', 'success');
-}
-if (params.get('error') === 'invalid_or_expired_link') {
-    showMsg('Verification link is invalid or expired. Please register again or resend the email.', 'error');
-}
-if (params.get('session') === 'expired') {
-    showMsg('Your session expired. Please sign in again.', 'info');
-}
+if (params.get('verified') === 'true') showMsg('Email verified! You can now sign in.', 'success');
+if (params.get('error') === 'invalid_link') showMsg('Verification link is invalid or expired. Please register again.', 'error');
+if (params.get('session') === 'expired') showMsg('Your session expired. Please sign in again.', 'info');
 
-// LOGIN
+// ── PROFILE PHOTO ────────────────────────────────────────────
+let avatarDataUrl = null;
+
+document.getElementById('photo-file-input').addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return showMsg('Photo must be under 5MB', 'error');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Compress image
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX = 200;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+            else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            avatarDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+            // Show preview
+            const circle = document.getElementById('photo-preview-circle');
+            circle.innerHTML = `<img src="${avatarDataUrl}">`;
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// Update initials preview as user types name
+document.getElementById('reg-name').addEventListener('input', function() {
+    const name = this.value.trim();
+    const initials = name.split(' ').map(n => n[0] || '').join('').toUpperCase().substring(0, 2);
+    const circle = document.getElementById('photo-preview-circle');
+    if (!avatarDataUrl) {
+        circle.innerHTML = `<span id="photo-initials">${initials || '?'}</span>`;
+    }
+});
+
+// ── USERNAME VALIDATION ──────────────────────────────────────
+document.getElementById('reg-username').addEventListener('input', function() {
+    const val = this.value;
+    const hint = document.getElementById('username-hint');
+    if (!val) { hint.textContent = 'Letters, numbers, underscores only'; hint.className = 'username-hint'; return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(val)) {
+        hint.textContent = '✗ Invalid characters'; hint.className = 'username-hint err';
+    } else if (val.length < 3) {
+        hint.textContent = '✗ At least 3 characters'; hint.className = 'username-hint err';
+    } else {
+        hint.textContent = '✓ Looks good'; hint.className = 'username-hint ok';
+    }
+});
+
+// ── LOGIN ────────────────────────────────────────────────────
 document.getElementById('btn-login').addEventListener('click', async () => {
-    const email = document.getElementById('login-email').value.trim();
+    const login = document.getElementById('login-id').value.trim();
     const pass = document.getElementById('login-pass').value;
     const btn = document.getElementById('btn-login');
+    if (!login || !pass) return showMsg('Please fill in all fields.', 'error');
 
-    if (!email || !pass) return showMsg('Please fill in all fields.', 'error');
-
-    btn.disabled = true;
-    btn.textContent = 'Signing in...';
-    hideMsg();
-
+    btn.disabled = true; btn.textContent = 'Signing in...'; hideMsg();
     try {
         const res = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password: pass })
+            body: JSON.stringify({ login, password: pass })
         });
         const data = await res.json();
-
         if (data.success) {
             localStorage.setItem('bfx_token', data.token);
             localStorage.setItem('bfx_user', JSON.stringify(data.user));
             window.location.href = '/setup.html';
         } else {
             showMsg(data.error, 'error');
-            if (data.needsVerification) resendLink.style.display = 'block';
+            if (data.needsVerification) {
+                document.getElementById('resend-link').style.display = 'block';
+                document.getElementById('resend-link').dataset.email = data.email || login;
+            }
         }
-    } catch (e) {
-        showMsg('Connection error. Please try again.', 'error');
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Enter Control Center';
+    } catch (e) { showMsg('Connection error. Please try again.', 'error'); }
+    btn.disabled = false; btn.textContent = 'Enter Control Center';
 });
 
-// Allow Enter key on login
 document.getElementById('login-pass').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('btn-login').click();
 });
 
-// REGISTER
+// ── REGISTER ─────────────────────────────────────────────────
 document.getElementById('btn-register').addEventListener('click', async () => {
-    const name = document.getElementById('reg-name').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const pass = document.getElementById('reg-pass').value;
-    const confirm = document.getElementById('reg-pass-confirm').value;
-    const btn = document.getElementById('btn-register');
+    const fullName = document.getElementById('reg-name').value.trim();
+    const username = document.getElementById('reg-username').value.trim();
+    const orgName  = document.getElementById('reg-org').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const pass     = document.getElementById('reg-pass').value;
+    const confirm  = document.getElementById('reg-pass-confirm').value;
+    const btn      = document.getElementById('btn-register');
 
-    if (!name || !email || !pass || !confirm) return showMsg('Please fill in all fields.', 'error');
-    if (pass !== confirm) return showMsg('Passwords do not match.', 'error');
-    if (pass.length < 6) return showMsg('Password must be at least 6 characters.', 'error');
+    if (!fullName || !username || !email || !pass || !confirm)
+        return showMsg('Please fill in all required fields (*).', 'error');
+    if (!/^[a-zA-Z0-9_]{3,}$/.test(username))
+        return showMsg('Username must be 3+ characters (letters, numbers, underscores only).', 'error');
+    if (pass !== confirm)
+        return showMsg('Passwords do not match.', 'error');
+    if (pass.length < 6)
+        return showMsg('Password must be at least 6 characters.', 'error');
 
-    btn.disabled = true;
-    btn.textContent = 'Creating account...';
-    hideMsg();
-
+    btn.disabled = true; btn.textContent = 'Creating account...'; hideMsg();
     try {
         const res = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password: pass, fullName: name })
+            body: JSON.stringify({ email, password: pass, fullName, username, organizationName: orgName, avatarData: avatarDataUrl })
         });
         const data = await res.json();
-
         if (data.success) {
-            showMsg('Account created! Check your email inbox for a verification link.', 'success');
-            document.getElementById('reg-name').value = '';
-            document.getElementById('reg-email').value = '';
-            document.getElementById('reg-pass').value = '';
-            document.getElementById('reg-pass-confirm').value = '';
+            showMsg(data.message, 'success');
+            if (data.autoVerified) {
+                setTimeout(() => switchTab('login'), 2000);
+            }
         } else {
             showMsg(data.error, 'error');
         }
-    } catch (e) {
-        showMsg('Connection error. Please try again.', 'error');
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Create Account';
+    } catch (e) { showMsg('Connection error. Please try again.', 'error'); }
+    btn.disabled = false; btn.textContent = 'Create Account';
 });
 
-// RESEND VERIFICATION
-resendLink.addEventListener('click', async () => {
-    const email = document.getElementById('login-email').value.trim();
-    if (!email) return showMsg('Enter your email address first.', 'error');
+// ── RESEND VERIFICATION ───────────────────────────────────────
+document.getElementById('resend-link').addEventListener('click', async function() {
+    const email = this.dataset.email || document.getElementById('login-id').value.trim();
+    if (!email) return showMsg('Enter your email/username first.', 'error');
     try {
         const res = await fetch('/api/auth/resend-verification', {
             method: 'POST',
@@ -223,15 +441,12 @@ resendLink.addEventListener('click', async () => {
             body: JSON.stringify({ email })
         });
         const data = await res.json();
-        showMsg(data.success ? 'Verification email sent!' : data.error, data.success ? 'success' : 'error');
-    } catch (e) {
-        showMsg('Failed to resend. Try again.', 'error');
-    }
+        showMsg(data.success ? 'Verification email sent! Check your inbox.' : data.error, data.success ? 'success' : 'error');
+    } catch (e) { showMsg('Failed to resend. Try again.', 'error'); }
 });
 
-// Redirect if already logged in
-const token = localStorage.getItem('bfx_token');
-if (token) window.location.href = '/setup.html';
+// ── REDIRECT IF ALREADY LOGGED IN ────────────────────────────
+if (localStorage.getItem('bfx_token')) window.location.href = '/setup.html';
 </script>
 </body>
 </html>
