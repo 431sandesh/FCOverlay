@@ -385,6 +385,33 @@ app.post('/api/user/avatar', authMiddleware, upload.single('avatar'), async (req
     }
 });
 
+// ─── PUBLIC OVERLAY API (no auth — used by OBS browser source) ──
+app.get('/api/public/match/:userId', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT data_value FROM user_data WHERE user_id=$1 AND data_key=$2',
+            [req.params.userId, 'match_state']
+        );
+        if (result.rows.length === 0) return res.json({ data: null });
+        res.json({ data: result.rows[0].data_value });
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to get overlay data' });
+    }
+});
+
+app.get('/api/public/db/:userId', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT data_value FROM user_data WHERE user_id=$1 AND data_key=$2',
+            [req.params.userId, 'bfx_database']
+        );
+        if (result.rows.length === 0) return res.json({ data: null });
+        res.json({ data: result.rows[0].data_value });
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to get db data' });
+    }
+});
+
 // ─── PAGE ROUTES ─────────────────────────────────────────────
 app.get('/index.html', (req, res) => res.redirect(301, '/'));
 app.get('/login',     (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
