@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BhakundoFX | Overlay Customizer & Simulator</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-cyber">
+
+    <div class="app-layout">
+        
+        <!-- Left Navigation Sidebar -->
+        <aside class="side-nav">
+            <div>
+                <div class="brand-header" style="padding-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                    <a href="index.html" style="display: block; width: 180px; height: 50px;">
+                        <img src="assets/logo.png" alt="BhakundoFX Logo" style="width: 100%; height: 100%; object-fit: contain;">
+                    </a>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="setup.html">
+                            <svg viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Roster Setup
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="customize.html">
+                            <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Overlay Setup
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="control.html">
+                            <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6A1 1 0 0 0 17.7 9.3H19.7v2H17.7a1 1 0 0 0-.7.3l-1.6 1.6a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 .7.3h2v2H17.7a1 1 0 0 0-.7-.3l-1.6-1.6a1 1 0 0 0-1.4 0l-1.6 1.6a1 1 0 0 0-.3.7v2h-2v-2a1 1 0 0 0-.3-.7l-1.6-1.6a1 1 0 0 0-1.4 0l-1.6 1.6a1 1 0 0 0-.3.7v2h-2V16.7h-2a1 1 0 0 0-.7-.3l-1.6-1.6a1 1 0 0 0 0-1.4l1.6-1.6a1 1 0 0 0 .3-.7v-2h2v-2h-2a1 1 0 0 0-.7-.3L4.3 7.7a1 1 0 0 0 0-1.4l1.6-1.6A1 1 0 0 0 6.6 4.3h2v-2h2v2a1 1 0 0 0 .7.3l1.6 1.6a1 1 0 0 0 1.4 0l1.6-1.6A1 1 0 0 0 14.7 4.3h2v2H14.7Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Control Board
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="overlay.html" target="_blank" style="border: 1px dashed rgba(16, 185, 129, 0.4);">
+                            <svg viewBox="0 0 24 24"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke="currentColor" stroke-width="2"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Launch OBS Overlay
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="user-profile-footer">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <span class="user-name">Admin Streamer</span>
+                    <span class="user-role">Lead Producer</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Main Panel Container -->
+        <main class="main-content">
+            
+            <div class="content-header">
+                <div class="header-title">
+                    <h2>Overlay Design Studio</h2>
+                    <p>Customize the visuals of your stream overlays. Select neon themes, sporty font styles, placements and preview real-time simulations.</p>
+                </div>
+            </div>
+
+            <div class="customizer-layout">
+                
+                <!-- Left Customizer controls panel -->
+                <section class="glass-panel panel-scroller">
+                    
+                    <!-- 1. Color Themes -->
+                    <div class="customizer-section">
+                        <h3 class="section-title">Adaptable Theme</h3>
+                        <div class="theme-selector-grid">
+                            <div class="theme-card active" data-theme="cyber">
+                                Cyber Neon
+                                <div class="theme-preview-strip">
+                                    <span class="color-dot" style="background:#10b981;"></span>
+                                    <span class="color-dot" style="background:#064e3b;"></span>
+                                    <span class="color-dot" style="background:#0a0f0d;"></span>
+                                </div>
+                            </div>
+                            <div class="theme-card" data-theme="classic">
+                                Slate Classic
+                                <div class="theme-preview-strip">
+                                    <span class="color-dot" style="background:#3b82f6;"></span>
+                                    <span class="color-dot" style="background:#1e3a8a;"></span>
+                                    <span class="color-dot" style="background:#0b0f19;"></span>
+                                </div>
+                            </div>
+                            <div class="theme-card" data-theme="gold">
+                                Gold Premium
+                                <div class="theme-preview-strip">
+                                    <span class="color-dot" style="background:#d97706;"></span>
+                                    <span class="color-dot" style="background:#78350f;"></span>
+                                    <span class="color-dot" style="background:#0e0d0a;"></span>
+                                </div>
+                            </div>
+                            <div class="theme-card" data-theme="fire">
+                                Fire Storm
+                                <div class="theme-preview-strip">
+                                    <span class="color-dot" style="background:#f97316;"></span>
+                                    <span class="color-dot" style="background:#9a3412;"></span>
+                                    <span class="color-dot" style="background:#110505;"></span>
+                                </div>
+                            </div>
+                            <div class="theme-card" data-theme="ice" style="grid-column: span 2;">
+                                Ice Glacial
+                                <div class="theme-preview-strip">
+                                    <span class="color-dot" style="background:#06b6d4;"></span>
+                                    <span class="color-dot" style="background:#0891b2;"></span>
+                                    <span class="color-dot" style="background:#050a11;"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Typography Styles -->
+                    <div class="customizer-section">
+                        <h3 class="section-title">Typography & Font</h3>
+                        <div class="auth-form-group" style="margin:0;">
+                            <select id="select-overlay-font" style="width:100%;">
+                                <option value="Space Grotesk" selected>Space Grotesk (Modern Tech)</option>
+                                <option value="Outfit">Outfit (Clean Sans-Serif)</option>
+                                <option value="Teko">Teko (High-Impact Bold Sport)</option>
+                                <option value="Courier New">Courier New (Digital Retro)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 3. Placement coordinates -->
+                    <div class="customizer-section">
+                        <h3 class="section-title">Scoreboard Alignment</h3>
+                        <div class="auth-form-group" style="margin:0;">
+                            <select id="select-scoreboard-pos" style="width:100%;">
+                                <option value="top-center" selected>Top Center Ribbon</option>
+                                <option value="top-left">Top Left Box</option>
+                                <option value="top-right">Top Right Box</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 4. Global Scaling -->
+                    <div class="customizer-section">
+                        <h3 class="section-title">Graphics Scaling</h3>
+                        <div class="range-group">
+                            <div class="range-header">
+                                <span>Scale size</span>
+                                <span id="lbl-scale-percent">100%</span>
+                            </div>
+                            <input type="range" id="input-overlay-scale" min="80" max="120" value="100">
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- Right Live Preview Simulator panel -->
+                <section class="preview-container">
+                    
+                    <div class="preview-header-bar">
+                        <h3 style="font-family: var(--font-display); font-size:1.15rem; color:var(--color-text-white); display:flex; align-items:center; gap:8px;">
+                            <span style="width:10px; height:10px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981;"></span>
+                            Live Broadcast Simulator Screen
+                        </h3>
+                        <span style="font-size:0.8rem; color:var(--color-text-dim);">1920x1080 Aspect Ratio Mock</span>
+                    </div>
+
+                    <!-- Big TV Screen Mock -->
+                    <div class="preview-window" id="simulation-viewport">
+                        <div class="simulated-overlay" id="simulator-overlay-layer">
+                            
+                            <!-- Mock Scoreboard Overlay -->
+                            <div class="preview-scoreboard-mock" id="mock-scoreboard">
+                                <div class="scoreboard-crest-color" style="background:#1e3a8a;"></div>
+                                <div class="preview-team-mock">RMA</div>
+                                <div class="preview-score-mock">2</div>
+                                <div class="preview-score-mock" style="color:#0ea5e9; border-left:none;">1</div>
+                                <div class="preview-team-mock">MCI</div>
+                                <div class="scoreboard-crest-color" style="background:#0ea5e9;"></div>
+                                <div class="preview-time-mock">43:18</div>
+                            </div>
+
+                            <!-- Mock Match VS card -->
+                            <div class="preview-vs-mock glass-panel" id="mock-vs-card" style="display: none;">
+                                <div class="preview-vs-grid-mock">
+                                    <div class="preview-vs-team-mock">
+                                        <div class="preview-vs-badge-mock" id="mock-badge-a"></div>
+                                        <div>Real Madrid</div>
+                                    </div>
+                                    <div class="preview-vs-text-mock">VS</div>
+                                    <div class="preview-vs-team-mock">
+                                        <div class="preview-vs-badge-mock" id="mock-badge-b"></div>
+                                        <div>Manchester City</div>
+                                    </div>
+                                </div>
+                                <div style="font-size: 0.7rem; color: var(--color-text-muted); border-top:1px solid rgba(255,255,255,0.05); padding-top:8px; width:100%;">
+                                    Champions Elite League • Final Match
+                                </div>
+                            </div>
+
+                            <!-- Mock High-impact Goal card -->
+                            <div class="announcer-card announcer-goal" id="mock-goal-alert" style="position: absolute; bottom: 30px; right: 30px; transform: none; display: none;">
+                                <div class="announcer-photo" id="mock-goal-photo">
+                                    <!-- Rotated SVG -->
+                                </div>
+                                <div class="announcer-info">
+                                    <div class="announcer-title">GOAL!</div>
+                                    <div class="announcer-name">Vinicius Junior</div>
+                                    <div class="announcer-sub">Real Madrid • Squad #7 (34')</div>
+                                </div>
+                            </div>
+
+                            <!-- Mock Yellow Card card -->
+                            <div class="announcer-card announcer-yellow-card" id="mock-card-alert" style="position: absolute; bottom: 30px; right: 30px; transform: none; display: none;">
+                                <div class="announcer-photo" id="mock-card-photo">
+                                    <!-- Rotated SVG -->
+                                </div>
+                                <div class="announcer-info">
+                                    <div class="announcer-title" style="color:var(--color-yellow);">YELLOW CARD</div>
+                                    <div class="announcer-name">Rodri Hernandez</div>
+                                    <div class="announcer-sub">Manchester City • Squad #16 (67')</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Simulator Demo Event Triggers Toolbar -->
+                    <div class="glass-panel preview-toolbar">
+                        <span>Simulate Overlay Triggers:</span>
+                        <button id="btn-sim-scoreboard" class="btn-primary">Toggle Scoreboard</button>
+                        <button id="btn-sim-vs" class="btn-secondary">Toggle VS Screen</button>
+                        <button id="btn-sim-goal" class="btn-secondary">Test Goal Pop</button>
+                        <button id="btn-sim-card" class="btn-secondary">Test Yellow Card</button>
+                    </div>
+
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Seeding Layer & Customizer controllers -->
+    <script src="js/db.js"></script>
+    <script src="js/customize.js"></script>
+</body>
+</html>

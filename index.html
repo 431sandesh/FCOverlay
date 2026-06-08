@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BhakundoFX | Elite Football Streaming Overlay Suite</title>
+    <meta name="description" content="Next-generation reactive sports overlay platform. Control lineups, matches, and real-time graphics seamlessly inside OBS and Streamlabs.">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-cyber">
+
+    <!-- Stadium Beam Glows -->
+    <div class="stadium-beams"></div>
+
+    <!-- Antigravity Interactive Soccer Canvas -->
+    <canvas id="physics-canvas"></canvas>
+
+    <!-- Main Landing Section -->
+    <div class="landing-hero">
+        
+        <!-- Header Brand -->
+        <header class="brand-header" style="border: none; width: 100%; max-width: 1200px; padding: 0;">
+            <a href="index.html" style="display: block; width: 210px; height: 60px; pointer-events: auto;">
+                <img src="assets/logo.png" alt="BhakundoFX Logo" style="width: 100%; height: 100%; object-fit: contain;">
+            </a>
+            <button class="btn-primary" id="btn-header-login" style="margin-left: auto;">Sign In</button>
+        </header>
+
+        <!-- Centered Core Content -->
+        <main class="hero-content">
+            <h1>Dynamic Sports Overlays.<br>Controlled in Real-Time.</h1>
+            <p>Elevate your football live streams with BhakundoFX. Build full tournament rosters, customize glowing broadcast themes, and run operations live. Synchronizes instantly with OBS Studio in a single click.</p>
+            <div class="hero-actions">
+                <button class="btn-primary" id="btn-hero-start" style="padding: 14px 28px; font-size: 1rem;">Launch Stream Dashboard</button>
+                <button class="btn-secondary" id="btn-hero-features" style="padding: 14px 28px; font-size: 1rem;">Explore Features</button>
+            </div>
+        </main>
+
+        <!-- Features list footer -->
+        <footer class="hero-footer">
+            <span>Anti-Gravity Cursor Physics</span>
+            <span>Zero-Latency OBS Sync</span>
+            <span>Roster & Statistics Engine</span>
+            <span>Adaptive Glow Themes</span>
+        </footer>
+    </div>
+
+    <!-- Glassmorphic Auth Modal -->
+    <div class="modal-overlay" id="auth-modal-overlay">
+        <div class="glass-panel auth-modal">
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="tab-login">Sign In</div>
+                <div class="auth-tab" id="tab-register">Create Account</div>
+            </div>
+
+            <!-- Login Form -->
+            <form id="form-login" onsubmit="event.preventDefault();">
+                <div class="auth-form-group">
+                    <label for="login-email">Broadcaster Username</label>
+                    <input type="text" id="login-email" placeholder="admin" value="admin" required>
+                </div>
+                <div class="auth-form-group">
+                    <label for="login-pass">Access Code</label>
+                    <input type="password" id="login-pass" placeholder="••••••••" value="123456" required>
+                </div>
+                <div class="auth-actions">
+                    <button type="submit" class="btn-primary" id="btn-submit-login">Enter Control Center</button>
+                    <button type="button" class="btn-secondary" id="btn-close-auth">Cancel</button>
+                </div>
+            </form>
+
+            <!-- Register Form (Hidden initially) -->
+            <form id="form-register" style="display: none;" onsubmit="event.preventDefault();">
+                <div class="auth-form-group">
+                    <label for="reg-name">Broadcaster Name</label>
+                    <input type="text" id="reg-name" placeholder="John Doe" required>
+                </div>
+                <div class="auth-form-group">
+                    <label for="reg-email">Broadcaster Email</label>
+                    <input type="email" id="reg-email" placeholder="streamer@bhakundofx.com" required>
+                </div>
+                <div class="auth-form-group">
+                    <label for="reg-pass">Choose Password</label>
+                    <input type="password" id="reg-pass" placeholder="••••••••" required>
+                </div>
+                <div class="auth-actions">
+                    <button type="submit" class="btn-primary" id="btn-submit-register">Create Broadcaster Profile</button>
+                    <button type="button" class="btn-secondary" id="btn-close-auth2">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DB Seeding and Navigation Scripts -->
+    <script src="js/db.js"></script>
+    <script src="js/landing.js"></script>
+</body>
+</html>

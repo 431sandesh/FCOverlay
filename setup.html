@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BhakundoFX | Roster Setup & Database Panel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-cyber">
+
+    <div class="app-layout">
+        
+        <!-- Left Navigation Sidebar -->
+        <aside class="side-nav">
+            <div>
+                <div class="brand-header" style="padding-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                    <a href="index.html" style="display: block; width: 180px; height: 50px;">
+                        <img src="assets/logo.png" alt="BhakundoFX Logo" style="width: 100%; height: 100%; object-fit: contain;">
+                    </a>
+                </div>
+
+                <ul class="nav-menu">
+                    <li class="nav-item active">
+                        <a href="setup.html">
+                            <svg viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Roster Setup
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="customize.html">
+                            <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Overlay Setup
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="control.html">
+                            <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6A1 1 0 0 0 17.7 9.3H19.7v2H17.7a1 1 0 0 0-.7.3l-1.6 1.6a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 .7.3h2v2H17.7a1 1 0 0 0-.7-.3l-1.6-1.6a1 1 0 0 0-1.4 0l-1.6 1.6a1 1 0 0 0-.3.7v2h-2v-2a1 1 0 0 0-.3-.7l-1.6-1.6a1 1 0 0 0-1.4 0l-1.6 1.6a1 1 0 0 0-.3.7v2h-2V16.7h-2a1 1 0 0 0-.7-.3l-1.6-1.6a1 1 0 0 0 0-1.4l1.6-1.6a1 1 0 0 0 .3-.7v-2h2v-2h-2a1 1 0 0 0-.7-.3L4.3 7.7a1 1 0 0 0 0-1.4l1.6-1.6A1 1 0 0 0 6.6 4.3h2v-2h2v2a1 1 0 0 0 .7.3l1.6 1.6a1 1 0 0 0 1.4 0l1.6-1.6A1 1 0 0 0 14.7 4.3h2v2H14.7Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Control Board
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="overlay.html" target="_blank" style="border: 1px dashed rgba(16, 185, 129, 0.4);">
+                            <svg viewBox="0 0 24 24"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke="currentColor" stroke-width="2"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Launch OBS Overlay
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="user-profile-footer">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <span class="user-name">Admin Streamer</span>
+                    <span class="user-role">Lead Producer</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Main Panel Container -->
+        <main class="main-content">
+            
+            <div class="content-header">
+                <div class="header-title">
+                    <h2>Roster Database Setup</h2>
+                    <p>Add tournaments, create soccer club franchises, adjust player stats and upload circular profile pictures.</p>
+                </div>
+                <div>
+                    <button class="btn-primary" id="btn-create-tournament">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Tournament
+                    </button>
+                </div>
+            </div>
+
+            <div class="setup-grid">
+                
+                <!-- Roster tree panel -->
+                <section class="glass-panel roster-tree">
+                    <h3 class="tree-title">League Navigator</h3>
+                    <ul class="tree-list" id="navigator-tree-list">
+                        <!-- Populated dynamically via JS -->
+                    </ul>
+                </section>
+
+                <!-- Detailed editor panel -->
+                <section class="glass-panel roster-editor" id="roster-editor-container">
+                    
+                    <!-- Welcome view (shown initially) -->
+                    <div class="editor-welcome" id="editor-welcome-view">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>
+                        </svg>
+                        <div>
+                            <h3 style="font-family: var(--font-display); margin-bottom: 5px; color: white;">Roster Panel Idle</h3>
+                            <p style="font-size: 0.9rem;">Select a tournament or club team on the left navigator to start adjustments.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tournament View Form (shown when tournament is selected) -->
+                    <div id="tournament-editor-view" style="display: none;">
+                        <div class="team-header-card">
+                            <div class="team-identity">
+                                <div class="team-badge-large" id="badge-tournament-large" style="width: 60px; height: 60px; border-radius: 50%; padding: 4px;">
+                                    <!-- Dynamic Logo -->
+                                </div>
+                                <div class="team-name-title">
+                                    <h3 id="lbl-tournament-name">Tournament</h3>
+                                    <span>Tournament Control Node</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-secondary" id="btn-edit-tournament-details">Edit Details</button>
+                                <button class="btn-danger" id="btn-delete-tournament-action">Delete Tournament</button>
+                            </div>
+                        </div>
+
+                        <div class="roster-section-header">
+                            <h4 style="font-family: var(--font-display);">Tournament Teams</h4>
+                            <button class="btn-primary" id="btn-add-team-modal">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Club Team
+                            </button>
+                        </div>
+
+                        <div class="roster-table-wrapper">
+                            <table class="roster-table">
+                                <thead>
+                                    <tr>
+                                        <th>Club Badge</th>
+                                        <th>Club Name</th>
+                                        <th>Short Code</th>
+                                        <th>Team Manager/Coach</th>
+                                        <th>Roster Size</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tournament-teams-tbody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Team View Form (shown when team is selected) -->
+                    <div id="team-editor-view" style="display: none;">
+                        <div class="team-header-card">
+                            <div class="team-identity">
+                                <div class="team-badge-large" id="badge-team-large">
+                                    <!-- Vector team badge svg -->
+                                </div>
+                                <div class="team-name-title">
+                                    <h3 id="lbl-team-name">Team Name</h3>
+                                    <div class="team-coach-name" id="lbl-team-coach">Manager: Carlo Ancelotti</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-secondary" id="btn-edit-team-details">Edit Colors & Manager</button>
+                                <button class="btn-danger" id="btn-delete-team-action">Delete Team</button>
+                            </div>
+                        </div>
+
+                        <div class="roster-section-header">
+                            <h4 style="font-family: var(--font-display);">Squad Roster Spreadsheet</h4>
+                            <button class="btn-primary" id="btn-add-player-modal">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Create Player Profile
+                            </button>
+                        </div>
+
+                        <div class="roster-table-wrapper">
+                            <table class="roster-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">Shirt</th>
+                                        <th>Player Name</th>
+                                        <th style="width: 80px;">Pos</th>
+                                        <th style="width: 50px;">GL</th>
+                                        <th style="width: 50px;">SH</th>
+                                        <th style="width: 50px;">SOT</th>
+                                        <th style="width: 50px;">FL</th>
+                                        <th style="width: 50px;">YC</th>
+                                        <th style="width: 50px;">RC</th>
+                                        <th style="width: 50px;">OF</th>
+                                        <th style="width: 50px;">INJ</th>
+                                        <th style="width: 60px; text-align: center;">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="team-roster-tbody">
+                                    <!-- Populated dynamically with inline stats editors -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Add Tournament -->
+    <div class="modal-overlay" id="modal-add-tournament">
+        <div class="glass-panel auth-modal">
+            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Create New Tournament</h3>
+            <form id="form-add-tournament" onsubmit="event.preventDefault();">
+                <div class="auth-form-group">
+                    <label for="input-tournament-name">Tournament Name</label>
+                    <input type="text" id="input-tournament-name" placeholder="Champions World Cup" required>
+                </div>
+                <div class="auth-form-group" style="margin-top: 15px;">
+                    <label>Tournament Logo Badge</label>
+                    <div class="image-upload-wrapper">
+                        <label class="image-upload-preview" id="label-t-logo-preview">
+                            <input type="file" id="input-t-logo" accept="image/*" style="display: none;">
+                            <img src="" id="img-t-logo-preview" style="display: none;">
+                            <svg id="svg-t-logo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+                            </svg>
+                        </label>
+                        <span style="font-size: 0.8rem; color: var(--color-text-dim);">Upload square crest/logo badge.</span>
+                    </div>
+                </div>
+                <div class="auth-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary">Create Tournament</button>
+                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Tournament Details -->
+    <div class="modal-overlay" id="modal-edit-tournament">
+        <div class="glass-panel auth-modal">
+            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Edit Tournament Details</h3>
+            <form id="form-edit-tournament" onsubmit="event.preventDefault();">
+                <input type="hidden" id="edit-t-id">
+                <div class="auth-form-group">
+                    <label for="edit-t-name">Tournament Name</label>
+                    <input type="text" id="edit-t-name" required>
+                </div>
+                <div class="auth-form-group" style="margin-top: 15px;">
+                    <label>Tournament Logo Badge</label>
+                    <div class="image-upload-wrapper">
+                        <label class="image-upload-preview" id="label-edit-t-logo-preview">
+                            <input type="file" id="edit-t-logo" accept="image/*" style="display: none;">
+                            <img src="" id="img-edit-t-logo-preview" style="display: none;">
+                            <svg id="svg-edit-t-logo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+                            </svg>
+                        </label>
+                        <span style="font-size: 0.8rem; color: var(--color-text-dim);">Change tournament logo crest.</span>
+                    </div>
+                </div>
+                <div class="auth-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary">Save Details</button>
+                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Team -->
+    <div class="modal-overlay" id="modal-add-team">
+        <div class="glass-panel auth-modal" style="max-width: 500px;">
+            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Create Club Franchise</h3>
+            <form id="form-add-team" onsubmit="event.preventDefault();">
+                <div class="form-grid">
+                    <div class="auth-form-group">
+                        <label for="input-team-name">Club Full Name</label>
+                        <input type="text" id="input-team-name" placeholder="Real Madrid" required>
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="input-team-short">Short Code (3 chars)</label>
+                        <input type="text" id="input-team-short" placeholder="RMA" maxlength="3" style="text-transform: uppercase;" required>
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="input-team-pcolor">Primary Team Color</label>
+                        <input type="color" id="input-team-pcolor" value="#1e3a8a" style="height: 42px; padding: 2px 5px;">
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="input-team-scolor">Secondary Accent Color</label>
+                        <input type="color" id="input-team-scolor" value="#f59e0b" style="height: 42px; padding: 2px 5px;">
+                    </div>
+                    <div class="auth-form-group form-grid-full">
+                        <label for="input-team-coach">Manager / Coach Name</label>
+                        <input type="text" id="input-team-coach" placeholder="Carlo Ancelotti" required>
+                    </div>
+                    <div class="auth-form-group form-grid-full">
+                        <label>Club Crest Logo</label>
+                        <div class="image-upload-wrapper">
+                            <label class="image-upload-preview" id="label-team-logo-preview">
+                                <input type="file" id="input-team-logo" accept="image/*" style="display: none;">
+                                <img src="" id="img-team-logo-preview" style="display: none;">
+                                <svg id="svg-team-logo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+                                </svg>
+                            </label>
+                            <span style="font-size: 0.8rem; color: var(--color-text-dim);">Upload emblem crest (Base64).</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-actions" style="margin-top: 15px;">
+                    <button type="submit" class="btn-primary">Register Club</button>
+                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Team details -->
+    <div class="modal-overlay" id="modal-edit-team">
+        <div class="glass-panel auth-modal" style="max-width: 500px;">
+            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Edit Club Details</h3>
+            <form id="form-edit-team" onsubmit="event.preventDefault();">
+                <input type="hidden" id="edit-team-id">
+                <div class="form-grid">
+                    <div class="auth-form-group">
+                        <label for="edit-team-name">Club Full Name</label>
+                        <input type="text" id="edit-team-name" required>
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="edit-team-short">Short Code</label>
+                        <input type="text" id="edit-team-short" maxlength="3" style="text-transform: uppercase;" required>
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="edit-team-pcolor">Primary Color</label>
+                        <input type="color" id="edit-team-pcolor" style="height: 42px; padding: 2px 5px;">
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="edit-team-scolor">Secondary Accent Color</label>
+                        <input type="color" id="edit-team-scolor" style="height: 42px; padding: 2px 5px;">
+                    </div>
+                    <div class="auth-form-group form-grid-full">
+                        <label for="edit-team-coach">Manager / Coach Name</label>
+                        <input type="text" id="edit-team-coach" required>
+                    </div>
+                    <div class="auth-form-group form-grid-full">
+                        <label>Club Crest Logo</label>
+                        <div class="image-upload-wrapper">
+                            <label class="image-upload-preview" id="label-edit-team-logo-preview">
+                                <input type="file" id="edit-team-logo" accept="image/*" style="display: none;">
+                                <img src="" id="img-edit-team-logo-preview" style="display: none;">
+                                <svg id="svg-edit-team-logo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+                                </svg>
+                            </label>
+                            <span style="font-size: 0.8rem; color: var(--color-text-dim);">Change club emblem crest.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-actions" style="margin-top: 15px;">
+                    <button type="submit" class="btn-primary">Save Details</button>
+                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Player -->
+    <div class="modal-overlay" id="modal-add-player">
+        <div class="glass-panel auth-modal" style="max-width: 500px;">
+            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Create Player Profile</h3>
+            <form id="form-add-player" onsubmit="event.preventDefault();">
+                <div class="form-grid">
+                    <div class="auth-form-group">
+                        <label for="input-player-name">Player Full Name</label>
+                        <input type="text" id="input-player-name" placeholder="Vinicius Junior" required>
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="input-player-number">Shirt Number (1-99)</label>
+                        <input type="number" id="input-player-number" min="1" max="99" placeholder="7" required>
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="input-player-position">On-Pitch Position</label>
+                        <select id="input-player-position" required>
+                            <option value="GK">Goalkeeper (GK)</option>
+                            <option value="DF">Defender (DF)</option>
+                            <option value="MF">Midfielder (MF)</option>
+                            <option value="FW" selected>Forward (FW)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Base64 Circular Image Upload -->
+                    <div class="auth-form-group">
+                        <label>Player Photo headshot</label>
+                        <div class="image-upload-wrapper">
+                            <label class="image-upload-preview" id="label-player-photo-preview">
+                                <input type="file" id="input-player-photo" accept="image/*" style="display: none;">
+                                <img src="" id="img-player-photo-preview" style="display: none;">
+                                <svg id="svg-player-photo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+                                </svg>
+                            </label>
+                            <span style="font-size: 0.8rem; color: var(--color-text-dim);">Upload headshot image. Converts to Base64 instantly.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary">Register Player</button>
+                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Seeding Layer & Setup controllers -->
+    <script src="js/db.js"></script>
+    <script src="js/setup.js"></script>
+</body>
+</html>

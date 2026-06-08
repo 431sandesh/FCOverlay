@@ -1,0 +1,12 @@
+{
+  "name": "bhakundofx",
+  "version": "1.0.0",
+  "description": "BhakundoFX Football Streaming Overlay",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

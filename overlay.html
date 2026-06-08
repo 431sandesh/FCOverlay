@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BhakundoFX | Stream Broadcast Overlay OBS Source</title>
+    <!-- We set transparent bg styling directly for OBS capturing -->
+    <style>
+        body {
+            background-color: transparent !important;
+            background-image: none !important;
+            overflow: hidden;
+            width: 1920px;
+            height: 1080px;
+        }
+    </style>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- OBS Browser Stage -->
+    <div class="overlay-stage" id="obs-overlay-stage">
+        
+        <div class="simulated-overlay font-grotesk" id="obs-graphic-container" style="width:100%; height:100%;">
+
+            <!-- 1. SCOREBOARD RIBBON OVERLAY -->
+            <div class="overlay-scoreboard pos-top-center" id="obs-scoreboard">
+                <div class="scoreboard-crest-color" id="obs-crest-a"></div>
+                <div class="scoreboard-team-box" id="obs-lbl-team-a">RMA</div>
+                <div class="scoreboard-score-box" id="obs-lbl-score-a">0</div>
+                <div class="scoreboard-score-box" id="obs-lbl-score-b" style="border-left:none;">0</div>
+                <div class="scoreboard-team-box" id="obs-lbl-team-b" style="text-align: right;">MCI</div>
+                <div class="scoreboard-crest-color" id="obs-crest-b"></div>
+                <div class="scoreboard-timer-box">
+                    <span class="scoreboard-time-text" id="obs-lbl-clock">00:00</span>
+                    <span class="scoreboard-half-indicator" id="obs-lbl-half">1ST</span>
+                </div>
+            </div>
+
+            <!-- 2. INTRODUCTORY VS MATCH CARD -->
+            <div class="glass-panel overlay-vs-card" id="obs-vs-card">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom: 5px;">
+                    <div id="obs-vs-t-logo" style="width:30px; height:30px; border-radius:50%; overflow:hidden;"></div>
+                    <div style="font-size:1.1rem; text-transform:uppercase; color:var(--color-accent); font-weight:700; letter-spacing:1.5px;">Live Broadcast Matchup</div>
+                </div>
+                
+                <div class="vs-banner-grid">
+                    <div class="vs-banner-team">
+                        <div class="vs-banner-badge" id="obs-vs-badge-a"></div>
+                        <div class="vs-banner-name" id="obs-vs-name-a">Real Madrid</div>
+                    </div>
+                    <div class="vs-text-node">VS</div>
+                    <div class="vs-banner-team">
+                        <div class="vs-banner-badge" id="obs-vs-badge-b"></div>
+                        <div class="vs-banner-name" id="obs-vs-name-b">Manchester City</div>
+                    </div>
+                </div>
+
+                <div class="vs-banner-details">
+                    <div>🏟️ Stadium: <strong style="color:white;" id="obs-vs-stadium">Santiago Bernabéu</strong></div>
+                    <div>🎙️ Casters: <strong style="color:white;" id="obs-vs-casters">Peter Drury</strong></div>
+                    <div>Referee: <strong style="color:white;" id="obs-vs-referee">Szymon Marciniak</strong></div>
+                </div>
+            </div>
+
+            <!-- 3. TEAM SQUAD LINEUPS WIDGET -->
+            <div class="overlay-lineups" id="obs-lineups-board">
+                
+                <!-- Home Team Column -->
+                <div class="glass-panel overlay-lineups-column" id="obs-lineup-col-a" style="--team-color: var(--color-accent);">
+                    <div class="overlay-lineup-header">
+                        <div style="width:48px; height:48px; padding:4px;" id="obs-lineup-badge-a"></div>
+                        <div>
+                            <h4 id="obs-lineup-title-a">Real Madrid</h4>
+                            <div class="overlay-lineup-coach" id="obs-lineup-coach-a">Coach: Carlo Ancelotti</div>
+                        </div>
+                    </div>
+                    <ul class="overlay-lineup-list" id="obs-lineup-list-a">
+                        <!-- Loaded dynamically -->
+                    </ul>
+                </div>
+
+                <!-- Away Team Column -->
+                <div class="glass-panel overlay-lineups-column" id="obs-lineup-col-b" style="--team-color: var(--color-blue);">
+                    <div class="overlay-lineup-header">
+                        <div style="width:48px; height:48px; padding:4px;" id="obs-lineup-badge-b"></div>
+                        <div>
+                            <h4 id="obs-lineup-title-b">Manchester City</h4>
+                            <div class="overlay-lineup-coach" id="obs-lineup-coach-b">Coach: Pep Guardiola</div>
+                        </div>
+                    </div>
+                    <ul class="overlay-lineup-list" id="obs-lineup-list-b">
+                        <!-- Loaded dynamically -->
+                    </ul>
+                </div>
+
+            </div>
+
+            <!-- 4. COMPARATIVE STATS BOARD -->
+            <div class="glass-panel overlay-stats-card" id="obs-stats-board">
+                <div class="overlay-stats-header">
+                    <h3>LIVE TEAM STATISTICS</h3>
+                    <span style="font-size:0.75rem; color:var(--color-accent); text-transform:uppercase; font-weight:600;" id="obs-stats-subheading">Champions Elite League</span>
+                </div>
+
+                <div class="overlay-stats-list" id="obs-stats-rows-list">
+                    <!-- Loaded dynamically via JS using horizontal bars -->
+                </div>
+            </div>
+
+            <!-- 5. GOAL SPLASH ANNOUNCER CARD (SLIDE-IN EFFECT) -->
+            <div class="announcer-card announcer-goal" id="obs-goal-announcer">
+                <div class="announcer-photo" id="obs-goal-photo">
+                    <!-- Photo loads dynamically -->
+                </div>
+                <div class="announcer-info">
+                    <div class="announcer-title">GOAL!</div>
+                    <div class="announcer-name" id="obs-goal-name">Vinicius Junior</div>
+                    <div class="announcer-sub" id="obs-goal-details">Squad #7 • Forward (34')</div>
+                </div>
+            </div>
+
+            <!-- 6. PENALIZATION CARD ANNOUNCER -->
+            <div class="announcer-card" id="obs-card-announcer">
+                <div class="announcer-photo" id="obs-card-photo">
+                    <!-- Photo loads dynamically -->
+                </div>
+                <div class="announcer-info">
+                    <div class="announcer-title" id="obs-card-title">YELLOW CARD</div>
+                    <div class="announcer-name" id="obs-card-name">Rodri Hernandez</div>
+                    <div class="announcer-sub" id="obs-card-details">Squad #16 • Midfielder (67')</div>
+                </div>
+            </div>
+
+            <!-- 7. SUBSTITUTION ANNOUNCER -->
+            <div class="announcer-card announcer-goal" id="obs-sub-announcer" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(15, 23, 42, 0.98)); border-color: var(--color-blue);">
+                <div class="announcer-photo" id="obs-sub-photo" style="border-color:var(--color-blue); animation:none;">
+                    <!-- Photo of entering player -->
+                </div>
+                <div class="announcer-info">
+                    <div class="announcer-title" style="color:var(--color-blue); display:flex; align-items:center; gap:6px;">
+                        SUBSTITUTION
+                        <span style="font-size: 1.1rem;">🔄</span>
+                    </div>
+                    <div class="announcer-name" id="obs-sub-name-in" style="font-size:1.15rem;">Luka Modric (IN)</div>
+                    <div class="announcer-sub" id="obs-sub-name-out" style="color:#fca5a5; font-size:0.8rem; margin-top:2px;">Out: Jude Bellingham</div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Seeding Layer & Real time Overlay logic -->
+    <script src="js/db.js"></script>
+    <script src="js/overlay.js"></script>
+</body>
+</html>
