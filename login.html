@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BhakundoFX | Sign In</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+        .auth-wrap { width:100%; max-width:420px; padding:20px; }
+        .auth-logo { text-align:center; margin-bottom:28px; }
+        .auth-logo img { height:60px; object-fit:contain; }
+        .auth-box { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:32px; backdrop-filter:blur(20px); }
+        .auth-tabs { display:flex; gap:0; margin-bottom:28px; background:rgba(0,0,0,0.3); border-radius:8px; padding:4px; }
+        .auth-tab { flex:1; padding:10px; text-align:center; border-radius:6px; cursor:pointer; font-size:0.9rem; font-weight:600; color:var(--color-text-dim); transition:all 0.2s; }
+        .auth-tab.active { background:var(--color-accent); color:#000; }
+        .form-group { margin-bottom:18px; }
+        .form-group label { display:block; font-size:0.8rem; color:var(--color-text-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+        .form-group input { width:100%; padding:12px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; font-size:0.95rem; box-sizing:border-box; transition:border-color 0.2s; }
+        .form-group input:focus { outline:none; border-color:var(--color-accent); }
+        .btn-auth { width:100%; padding:13px; background:var(--color-accent); color:#000; font-weight:700; border:none; border-radius:8px; font-size:1rem; cursor:pointer; transition:opacity 0.2s; margin-top:6px; }
+        .btn-auth:hover { opacity:0.85; }
+        .btn-auth:disabled { opacity:0.5; cursor:not-allowed; }
+        .auth-msg { padding:12px 14px; border-radius:8px; font-size:0.875rem; margin-bottom:18px; display:none; }
+        .auth-msg.success { background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#10b981; }
+        .auth-msg.error { background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; }
+        .auth-msg.info { background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; }
+        .resend-link { font-size:0.8rem; color:var(--color-accent); cursor:pointer; text-align:center; margin-top:12px; display:none; }
+        .resend-link:hover { text-decoration:underline; }
+        .divider { text-align:center; color:var(--color-text-dim); font-size:0.8rem; margin:16px 0; }
+    </style>
+</head>
+<body class="theme-cyber">
+<div class="stadium-beams"></div>
+
+<div class="auth-wrap">
+    <div class="auth-logo">
+        <img src="assets/logo.png" alt="BhakundoFX">
+    </div>
+
+    <div class="auth-box">
+        <div class="auth-tabs">
+            <div class="auth-tab active" id="tab-login">Sign In</div>
+            <div class="auth-tab" id="tab-register">Create Account</div>
+        </div>
+
+        <div id="auth-message" class="auth-msg"></div>
+
+        <!-- LOGIN FORM -->
+        <div id="form-login">
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="login-email" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-pass" placeholder="••••••••">
+            </div>
+            <button class="btn-auth" id="btn-login">Enter Control Center</button>
+            <div class="resend-link" id="resend-link">Didn't receive verification email? Resend it</div>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="form-register" style="display:none;">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="reg-name" placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="reg-email" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label>Password (min 6 characters)</label>
+                <input type="password" id="reg-pass" placeholder="••••••••">
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" id="reg-pass-confirm" placeholder="••••••••">
+            </div>
+            <button class="btn-auth" id="btn-register">Create Account</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const tabLogin = document.getElementById('tab-login');
+const tabRegister = document.getElementById('tab-register');
+const formLogin = document.getElementById('form-login');
+const formRegister = document.getElementById('form-register');
+const msgBox = document.getElementById('auth-message');
+const resendLink = document.getElementById('resend-link');
+
+function showMsg(text, type) {
+    msgBox.textContent = text;
+    msgBox.className = 'auth-msg ' + type;
+    msgBox.style.display = 'block';
+}
+
+function hideMsg() {
+    msgBox.style.display = 'none';
+    resendLink.style.display = 'none';
+}
+
+tabLogin.addEventListener('click', () => {
+    tabLogin.classList.add('active');
+    tabRegister.classList.remove('active');
+    formLogin.style.display = 'block';
+    formRegister.style.display = 'none';
+    hideMsg();
+});
+
+tabRegister.addEventListener('click', () => {
+    tabRegister.classList.add('active');
+    tabLogin.classList.remove('active');
+    formRegister.style.display = 'block';
+    formLogin.style.display = 'none';
+    hideMsg();
+});
+
+// Check URL params for messages
+const params = new URLSearchParams(window.location.search);
+if (params.get('verified') === 'true') {
+    showMsg('Email verified successfully! You can now sign in.', 'success');
+}
+if (params.get('error') === 'invalid_or_expired_link') {
+    showMsg('Verification link is invalid or expired. Please register again or resend the email.', 'error');
+}
+if (params.get('session') === 'expired') {
+    showMsg('Your session expired. Please sign in again.', 'info');
+}
+
+// LOGIN
+document.getElementById('btn-login').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const btn = document.getElementById('btn-login');
+
+    if (!email || !pass) return showMsg('Please fill in all fields.', 'error');
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+    hideMsg();
+
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password: pass })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            localStorage.setItem('bfx_token', data.token);
+            localStorage.setItem('bfx_user', JSON.stringify(data.user));
+            window.location.href = '/setup.html';
+        } else {
+            showMsg(data.error, 'error');
+            if (data.needsVerification) resendLink.style.display = 'block';
+        }
+    } catch (e) {
+        showMsg('Connection error. Please try again.', 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Enter Control Center';
+});
+
+// Allow Enter key on login
+document.getElementById('login-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+// REGISTER
+document.getElementById('btn-register').addEventListener('click', async () => {
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const pass = document.getElementById('reg-pass').value;
+    const confirm = document.getElementById('reg-pass-confirm').value;
+    const btn = document.getElementById('btn-register');
+
+    if (!name || !email || !pass || !confirm) return showMsg('Please fill in all fields.', 'error');
+    if (pass !== confirm) return showMsg('Passwords do not match.', 'error');
+    if (pass.length < 6) return showMsg('Password must be at least 6 characters.', 'error');
+
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+    hideMsg();
+
+    try {
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password: pass, fullName: name })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showMsg('Account created! Check your email inbox for a verification link.', 'success');
+            document.getElementById('reg-name').value = '';
+            document.getElementById('reg-email').value = '';
+            document.getElementById('reg-pass').value = '';
+            document.getElementById('reg-pass-confirm').value = '';
+        } else {
+            showMsg(data.error, 'error');
+        }
+    } catch (e) {
+        showMsg('Connection error. Please try again.', 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+});
+
+// RESEND VERIFICATION
+resendLink.addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) return showMsg('Enter your email address first.', 'error');
+    try {
+        const res = await fetch('/api/auth/resend-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        showMsg(data.success ? 'Verification email sent!' : data.error, data.success ? 'success' : 'error');
+    } catch (e) {
+        showMsg('Failed to resend. Try again.', 'error');
+    }
+});
+
+// Redirect if already logged in
+const token = localStorage.getItem('bfx_token');
+if (token) window.location.href = '/setup.html';
+</script>
+</body>
+</html>
