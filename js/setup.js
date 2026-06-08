@@ -1,5 +1,47 @@
 // setup.js - Roster Setup Page Dashboard Logic
 
+// ─── CLOUDINARY UPLOAD HELPER ───────────────────────────────
+// Uploads a file directly to Railway → Cloudinary via API
+// Falls back to compressed base64 if upload fails
+async function uploadPhoto(file, type, id) {
+    try {
+        const formData = new FormData();
+        formData.append('photo', file);
+        const res = await fetch(`/api/upload/${type}/${id}`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('bfx_token') },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) return data.url;
+        throw new Error(data.error);
+    } catch (e) {
+        console.warn('Cloudinary upload failed, using base64 fallback:', e.message);
+        return null; // will fall back to compressImage
+    }
+}
+
+// ─── IMAGE COMPRESSION HELPER ────────────────────────────────
+// Resizes and compresses any image to JPEG before storing as base64
+// This prevents localStorage overflow with large PNG/raw files
+function compressImage(file, maxSize, quality, callback) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+            else        { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            callback(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Current Active Selection State
     let activeSelection = { type: 'welcome', id: null };
@@ -502,19 +544,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Base64 file uploader reader logic
-    document.getElementById('input-player-photo').addEventListener('change', (e) => {
+    document.getElementById('input-player-photo').addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                tempPlayerPhotoBase64 = event.target.result;
-                const previewImg = document.getElementById('img-player-photo-preview');
-                const placeholderSvg = document.getElementById('svg-player-photo-placeholder');
-                previewImg.src = tempPlayerPhotoBase64;
-                previewImg.style.display = 'block';
-                placeholderSvg.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+        const previewImg = document.getElementById('img-player-photo-preview');
+        const placeholderSvg = document.getElementById('svg-player-photo-placeholder');
+
+        // Show preview immediately using local URL
+        const localUrl = URL.createObjectURL(file);
+        previewImg.src = localUrl;
+        previewImg.style.display = 'block';
+        placeholderSvg.style.display = 'none';
+
+        // Try Cloudinary upload first
+        const cloudUrl = await uploadPhoto(file, 'player', 'temp_' + Date.now());
+        if (cloudUrl) {
+            tempPlayerPhotoBase64 = cloudUrl;
+        } else {
+            // Fallback: compress and use base64
+            compressImage(file, 300, 0.8, function(compressed) {
+                tempPlayerPhotoBase64 = compressed;
+            });
         }
     });
 
@@ -522,32 +572,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-t-logo').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                tempTournamentLogoBase64 = event.target.result;
+            compressImage(file, 200, 0.85, function(compressed) {
+                tempTournamentLogoBase64 = compressed;
                 const previewImg = document.getElementById('img-t-logo-preview');
                 const placeholderSvg = document.getElementById('svg-t-logo-placeholder');
                 previewImg.src = tempTournamentLogoBase64;
                 previewImg.style.display = 'block';
                 placeholderSvg.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
+            });
         }
     });
 
     document.getElementById('edit-t-logo').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                tempTournamentLogoBase64 = event.target.result;
+            compressImage(file, 200, 0.85, function(compressed) {
+                tempTournamentLogoBase64 = compressed;
                 const previewImg = document.getElementById('img-edit-t-logo-preview');
                 const placeholderSvg = document.getElementById('svg-edit-t-logo-placeholder');
                 previewImg.src = tempTournamentLogoBase64;
                 previewImg.style.display = 'block';
                 placeholderSvg.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
+            });
         }
     });
 
@@ -555,32 +601,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-team-logo').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                tempTeamLogoBase64 = event.target.result;
+            compressImage(file, 200, 0.85, function(compressed) {
+                tempTeamLogoBase64 = compressed;
                 const previewImg = document.getElementById('img-team-logo-preview');
                 const placeholderSvg = document.getElementById('svg-team-logo-placeholder');
                 previewImg.src = tempTeamLogoBase64;
                 previewImg.style.display = 'block';
                 placeholderSvg.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
+            });
         }
     });
 
     document.getElementById('edit-team-logo').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                tempTeamLogoBase64 = event.target.result;
+            compressImage(file, 200, 0.85, function(compressed) {
+                tempTeamLogoBase64 = compressed;
                 const previewImg = document.getElementById('img-edit-team-logo-preview');
                 const placeholderSvg = document.getElementById('svg-edit-team-logo-placeholder');
                 previewImg.src = tempTeamLogoBase64;
                 previewImg.style.display = 'block';
                 placeholderSvg.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
+            });
         }
     });
 
