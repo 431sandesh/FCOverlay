@@ -387,6 +387,8 @@ app.post('/api/user/avatar', authMiddleware, upload.single('avatar'), async (req
 
 // ─── PAGE ROUTES ─────────────────────────────────────────────
 app.get('/index.html', (req, res) => res.redirect(301, '/'));
+app.get('/login',     (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/login.html',(req, res) => res.redirect(301, '/login'));
 app.get('/control',   (req, res) => res.sendFile(path.join(__dirname, 'control.html')));
 app.get('/setup',     (req, res) => res.sendFile(path.join(__dirname, 'setup.html')));
 app.get('/customize', (req, res) => res.sendFile(path.join(__dirname, 'customize.html')));
