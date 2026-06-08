@@ -1,4 +1,41 @@
 // db.js - Unified database & LocalStorage sync layer for BhakundoFX
+// Supports both local (guest) and authenticated (cloud sync) modes
+
+// ─── SERVER SYNC ─────────────────────────────────────────────
+// Syncs data to Railway server in background (non-blocking)
+async function syncToServer(key, value) {
+    if (!window.BFX_TOKEN) return;
+    try {
+        await window.apiFetch('/api/data/' + key, {
+            method: 'POST',
+            body: JSON.stringify({ data: value })
+        });
+    } catch (e) {
+        console.warn('Sync to server failed for key:', key);
+    }
+}
+
+// Load all user data from server into localStorage on login
+async function loadFromServer() {
+    if (!window.BFX_TOKEN) return;
+    try {
+        const res = await window.apiFetch('/api/data');
+        const data = await res.json();
+        const uid = window.BFX_USER.id;
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== null) localStorage.setItem('bfx_' + uid + '_' + key, JSON.stringify(value));
+        });
+        console.log('User data loaded from server');
+    } catch (e) {
+        console.warn('Failed to load from server, using local cache');
+    }
+}
+
+// Get namespaced localStorage key (per-user isolation)
+function userKey(key) {
+    if (window.BFX_USER) return 'bfx_' + window.BFX_USER.id + '_' + key;
+    return 'bfx_guest_' + key;
+}
 
 // -------------------------------------------------------------
 // HELPER: Generate Beautiful SVG Avatars with Team Colors
@@ -14,13 +51,14 @@ function generateSvgAvatar(initials, primaryColor, secondaryColor) {
 }
 
 function generateSvgLogo(name, primaryColor, secondaryColor) {
-    const initials = name.substring(0, 3).toUpperCase();
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">' +
-        '<polygon points="50,5 90,25 90,75 50,95 10,75 10,25" fill="' + primaryColor + '" stroke="' + secondaryColor + '" stroke-width="5" stroke-linejoin="round"/>' +
-        '<polygon points="50,15 80,30 80,70 50,85 20,70 20,30" fill="none" stroke="white" stroke-width="2" opacity="0.5"/>' +
-        '<text x="50" y="52" font-family="Space Grotesk, sans-serif" font-weight="bold" font-size="24" fill="white" text-anchor="middle" dominant-baseline="middle">' + initials + '</text>' +
-        '</svg>';
-    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    const encInitials = encodeURIComponent(name.substring(0, 3).toUpperCase());
+    const encPrimary = encodeURIComponent(primaryColor);
+    const encSecondary = encodeURIComponent(secondaryColor);
+    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">` +
+        `<polygon points="50,5 90,25 90,75 50,95 10,75 10,25" fill="${encPrimary}" stroke="${encSecondary}" stroke-width="5" stroke-linejoin="round"/>` +
+        `<polygon points="50,15 80,30 80,70 50,85 20,70 20,30" fill="none" stroke="white" stroke-width="2" opacity="0.5"/>` +
+        `<text x="50" y="52" font-family="'Space Grotesk', sans-serif" font-weight="bold" font-size="24" fill="white" text-anchor="middle" dominant-baseline="middle">${encInitials}</text>` +
+        `</svg>`;
 }
 
 // -------------------------------------------------------------
@@ -153,7 +191,7 @@ const DEFAULT_MATCH_STATE = {
 const DB = {
     // Read whole DB
     getDb: function() {
-        let dbStr = localStorage.getItem(DB_KEYS.DATABASE);
+        let dbStr = localStorage.getItem(userKey(DB_KEYS.DATABASE));
         if (!dbStr) {
             this.saveDb(DEFAULT_DATABASE);
             return DEFAULT_DATABASE;
@@ -174,7 +212,8 @@ const DB = {
     },
 
     saveDb: function(db) {
-        localStorage.setItem(DB_KEYS.DATABASE, JSON.stringify(db));
+        localStorage.setItem(userKey(DB_KEYS.DATABASE), JSON.stringify(db));
+        syncToServer(DB_KEYS.DATABASE, db);
     },
 
     // Tournaments
@@ -298,7 +337,7 @@ const DB = {
     // OVERLAY CONFIGURATION MANAGEMENT
     // -------------------------------------------------------------
     getOverlayConfig: function() {
-        const configStr = localStorage.getItem(DB_KEYS.OVERLAY_CONFIG);
+        const configStr = localStorage.getItem(userKey(DB_KEYS.OVERLAY_CONFIG));
         if (!configStr) {
             this.saveOverlayConfig(DEFAULT_OVERLAY_CONFIG);
             return DEFAULT_OVERLAY_CONFIG;
@@ -311,14 +350,15 @@ const DB = {
     },
 
     saveOverlayConfig: function(config) {
-        localStorage.setItem(DB_KEYS.OVERLAY_CONFIG, JSON.stringify(config));
+        localStorage.setItem(userKey(DB_KEYS.OVERLAY_CONFIG), JSON.stringify(config));
+        syncToServer(DB_KEYS.OVERLAY_CONFIG, config);
     },
 
     // -------------------------------------------------------------
     // LIVE MATCH STATE MANAGEMENT
     // -------------------------------------------------------------
     getMatchState: function() {
-        const stateStr = localStorage.getItem(DB_KEYS.MATCH_STATE);
+        const stateStr = localStorage.getItem(userKey(DB_KEYS.MATCH_STATE));
         if (!stateStr) {
             this.saveMatchState(DEFAULT_MATCH_STATE);
             return DEFAULT_MATCH_STATE;
@@ -331,7 +371,8 @@ const DB = {
     },
 
     saveMatchState: function(state) {
-        localStorage.setItem(DB_KEYS.MATCH_STATE, JSON.stringify(state));
+        localStorage.setItem(userKey(DB_KEYS.MATCH_STATE), JSON.stringify(state));
+        syncToServer(DB_KEYS.MATCH_STATE, state);
     },
 
     resetMatchState: function() {
@@ -350,11 +391,11 @@ const DB = {
             payload: payload,
             timestamp: Date.now()
         };
-        localStorage.setItem(DB_KEYS.OVERLAY_TRIGGER, JSON.stringify(trigger));
+        localStorage.setItem(userKey(DB_KEYS.OVERLAY_TRIGGER), JSON.stringify(trigger));
     },
 
     getLatestTrigger: function() {
-        const trigStr = localStorage.getItem(DB_KEYS.OVERLAY_TRIGGER);
+        const trigStr = localStorage.getItem(userKey(DB_KEYS.OVERLAY_TRIGGER));
         if (!trigStr) return null;
         try {
             return JSON.parse(trigStr);
@@ -394,13 +435,13 @@ const DB = {
         const name = tournament ? tournament.name : 'LEA';
         const initials = name.substring(0, 3).toUpperCase();
         const encInitials = encodeURIComponent(initials);
-        const tSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">' +
-            '<circle cx="50" cy="50" r="46" fill="#111827" stroke="#10b981" stroke-width="4"/>' +
-            '<text x="50" y="55" font-family="Space Grotesk, sans-serif" font-weight="bold" font-size="28" fill="white" text-anchor="middle" dominant-baseline="middle">' + initials + '</text>' +
-            '</svg>';
-        return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(tSvg)));
+        return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">` +
+            `<circle cx="50" cy="50" r="46" fill="%23111827" stroke="%2310b981" stroke-width="4"/>` +
+            `<text x="50" y="55" font-family="'Space Grotesk', sans-serif" font-weight="bold" font-size="28" fill="white" text-anchor="middle" dominant-baseline="middle">${encInitials}</text>` +
+            `</svg>`;
     }
 };
 
 // Expose DB to global scope for page scripts
 window.DB = DB;
+window.DB.loadFromServer = loadFromServer;
