@@ -3,7 +3,6 @@ const path = require('path');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 const app = express();
@@ -60,29 +59,32 @@ async function initDB() {
 // ─── EMAIL ───────────────────────────────────────────────────
 async function sendVerificationEmail(email, fullName, token) {
     try {
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-        });
         const link = `https://bhakundofx.up.railway.app/api/auth/verify/${token}`;
-
-        // 8 second timeout — if Gmail doesn't respond, fail fast
-        const timeout = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Email timeout after 8s')), 8000)
-        );
-        const sendMail = transporter.sendMail({
-            from: `"BhakundoFX" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: 'Verify your BhakundoFX account',
-            html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#0a0f0d;color:#fff;border-radius:12px;">
-                <h2 style="color:#10b981;">Welcome to BhakundoFX, ${fullName}!</h2>
-                <p style="color:#9ca3af;">Click the button below to verify your email and activate your account.</p>
-                <a href="${link}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#10b981;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">Verify Email</a>
-                <p style="color:#6b7280;font-size:12px;">Link expires in 24 hours.</p>
-            </div>`
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': process.env.BREVO_API_KEY
+            },
+            body: JSON.stringify({
+                sender: { name: 'BhakundoFX', email: process.env.EMAIL_USER },
+                to: [{ email: email, name: fullName }],
+                subject: 'Verify your BhakundoFX account',
+                htmlContent: `
+                <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#0a0f0d;color:#fff;border-radius:12px;">
+                    <h2 style="color:#10b981;">Welcome to BhakundoFX, ${fullName}!</h2>
+                    <p style="color:#9ca3af;">Click the button below to verify your email and activate your account.</p>
+                    <a href="${link}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#10b981;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">Verify Email</a>
+                    <p style="color:#6b7280;font-size:12px;">Link expires in 24 hours. If you did not sign up, ignore this email.</p>
+                </div>`
+            })
         });
-        await Promise.race([sendMail, timeout]);
+        if (!response.ok) {
+            const err = await response.text();
+            console.error('Brevo error:', err);
+            return false;
+        }
+        console.log('Verification email sent to:', email);
         return true;
     } catch (e) {
         console.error('Email send failed:', e.message);
@@ -137,15 +139,10 @@ app.post('/api/auth/register', async (req, res) => {
             [email.toLowerCase(), passwordHash, fullName, username, organizationName || null, initials, avatarData || null, verificationToken, verificationExpires]
         );
 
-        const emailSent = await sendVerificationEmail(email, fullName, verificationToken);
-
-        if (emailSent) {
-            res.json({ success: true, message: 'Account created! Check your email to verify your account.' });
-        } else {
-            // Account created but email failed — auto-verify for now so user isn't stuck
-            await pool.query('UPDATE users SET is_verified=TRUE WHERE email=$1', [email.toLowerCase()]);
-            res.json({ success: true, message: 'Account created! Email verification skipped — you can log in now.', autoVerified: true });
-        }
+        // Auto-verify for now — email system will be enabled later
+        await pool.query('UPDATE users SET is_verified=TRUE WHERE email=$1', [email.toLowerCase()]);
+        sendVerificationEmail(email, fullName, verificationToken); // fire and forget
+        res.json({ success: true, message: 'Account created! You can now log in.', autoVerified: true });
     } catch (e) {
         console.error('Register error:', e);
         res.status(500).json({ error: 'Registration failed: ' + e.message });
