@@ -375,7 +375,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
         if (data.success) {
             localStorage.setItem('bfx_token', data.token);
             localStorage.setItem('bfx_user', JSON.stringify(data.user));
-            window.location.href = '/setup.html';
+            window.location.href = '/setup';
         } else {
             showMsg(data.error, 'error');
             if (data.needsVerification) {
@@ -460,7 +460,7 @@ document.getElementById('resend-link').addEventListener('click', async function(
 });
 
 // ── REDIRECT IF ALREADY LOGGED IN ────────────────────────────
-if (localStorage.getItem('bfx_token')) window.location.href = '/setup.html';
+if (localStorage.getItem('bfx_token')) window.location.href = '/setup';
 </script>
 </body>
 </html>
