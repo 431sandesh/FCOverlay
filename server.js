@@ -65,7 +65,12 @@ async function sendVerificationEmail(email, fullName, token) {
             auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
         });
         const link = `https://bhakundofx.up.railway.app/api/auth/verify/${token}`;
-        await transporter.sendMail({
+
+        // 8 second timeout — if Gmail doesn't respond, fail fast
+        const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Email timeout after 8s')), 8000)
+        );
+        const sendMail = transporter.sendMail({
             from: `"BhakundoFX" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Verify your BhakundoFX account',
@@ -77,6 +82,7 @@ async function sendVerificationEmail(email, fullName, token) {
                 <p style="color:#6b7280;font-size:12px;">Link expires in 24 hours.</p>
             </div>`
         });
+        await Promise.race([sendMail, timeout]);
         return true;
     } catch (e) {
         console.error('Email send failed:', e.message);
