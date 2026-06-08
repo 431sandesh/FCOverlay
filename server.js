@@ -4,6 +4,27 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { v2: cloudinary } = require('cloudinary');
+const multer = require('multer');
+
+// ─── CLOUDINARY CONFIG ───────────────────────────────────────
+cloudinary.config({ cloudinary_url: process.env.CLOUDINARY_URL });
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// Upload buffer to Cloudinary
+async function uploadToCloudinary(buffer, folder, publicId) {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { folder, public_id: publicId, overwrite: true, 
+              transformation: [{ width: 400, height: 400, crop: 'fill', quality: 'auto' }] },
+            (error, result) => error ? reject(error) : resolve(result.secure_url)
+        );
+        stream.end(buffer);
+    });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -318,6 +339,49 @@ app.get('/api/data', authMiddleware, async (req, res) => {
         res.json(data);
     } catch (e) {
         res.status(500).json({ error: 'Failed to load data' });
+    }
+});
+
+// ─── CLOUDINARY UPLOAD ROUTES ────────────────────────────────
+
+// Upload player/team/tournament photo
+app.post('/api/upload/:type/:id', authMiddleware, upload.single('photo'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+        const folder = `bhakundofx/user_${req.user.id}/${req.params.type}`;
+        const publicId = req.params.id + '_' + Date.now();
+        const url = await uploadToCloudinary(req.file.buffer, folder, publicId);
+        res.json({ success: true, url });
+    } catch (e) {
+        console.error('Upload error:', e);
+        res.status(500).json({ error: 'Upload failed: ' + e.message });
+    }
+});
+
+// Upload profile avatar
+app.post('/api/user/avatar', authMiddleware, upload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+        const url = await uploadToCloudinary(
+            req.file.buffer,
+            'bhakundofx/avatars',
+            'user_' + req.user.id
+        );
+        await pool.query('UPDATE users SET avatar_data=$1 WHERE id=$2', [url, req.user.id]);
+        // Update token
+        const userResult = await pool.query('SELECT * FROM users WHERE id=$1', [req.user.id]);
+        const user = userResult.rows[0];
+        const token = jwt.sign(
+            { id: user.id, email: user.email, fullName: user.full_name, username: user.username,
+              organizationName: user.organization_name, initials: user.initials,
+              avatarColor: user.avatar_color, avatarData: url },
+            process.env.JWT_SECRET, { expiresIn: '7d' }
+        );
+        localStorage_user = { ...req.user, avatarData: url };
+        res.json({ success: true, url, token });
+    } catch (e) {
+        console.error('Avatar upload error:', e);
+        res.status(500).json({ error: 'Avatar upload failed: ' + e.message });
     }
 });
 
