@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BhakundoFX | Roster Setup & Database Panel</title>
+    <title>BhakundoFX | Live Match Control Center</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="theme-cyber">
@@ -14,32 +14,32 @@
         <aside class="side-nav">
             <div>
                 <div class="brand-header" style="padding-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                    <a href="index.html" style="display: block; width: 180px; height: 50px;">
+                    <a href="/" style="display: block; width: 180px; height: 50px;">
                         <img src="assets/logo.png" alt="BhakundoFX Logo" style="width: 100%; height: 100%; object-fit: contain;">
                     </a>
                 </div>
 
                 <ul class="nav-menu">
-                    <li class="nav-item active">
-                        <a href="setup.html">
+                    <li class="nav-item">
+                        <a href="/setup">
                             <svg viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             Roster Setup
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="customize.html">
+                        <a href="/customize">
                             <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             Overlay Setup
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="control.html">
+                    <li class="nav-item active">
+                        <a href="/control">
                             <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6A1 1 0 0 0 17.7 9.3H19.7v2H17.7a1 1 0 0 0-.7.3l-1.6 1.6a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 .7.3h2v2H17.7a1 1 0 0 0-.7-.3l-1.6-1.6a1 1 0 0 0-1.4 0l-1.6 1.6a1 1 0 0 0-.3.7v2h-2v-2a1 1 0 0 0-.3-.7l-1.6-1.6a1 1 0 0 0-1.4 0l-1.6 1.6a1 1 0 0 0-.3.7v2h-2V16.7h-2a1 1 0 0 0-.7-.3l-1.6-1.6a1 1 0 0 0 0-1.4l1.6-1.6a1 1 0 0 0 .3-.7v-2h2v-2h-2a1 1 0 0 0-.7-.3L4.3 7.7a1 1 0 0 0 0-1.4l1.6-1.6A1 1 0 0 0 6.6 4.3h2v-2h2v2a1 1 0 0 0 .7.3l1.6 1.6a1 1 0 0 0 1.4 0l1.6-1.6A1 1 0 0 0 14.7 4.3h2v2H14.7Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             Control Board
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="overlay.html" target="_blank" style="border: 1px dashed rgba(16, 185, 129, 0.4);">
+                        <a href="/overlay" target="_blank" style="border: 1px dashed rgba(16, 185, 129, 0.4);">
                             <svg viewBox="0 0 24 24"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke="currentColor" stroke-width="2"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             Launch OBS Overlay
                         </a>
@@ -47,28 +47,13 @@
                 </ul>
             </div>
 
-            <div class="user-profile-footer" style="cursor:default;">
-                <div class="user-avatar" id="sidebar-avatar" style="background:var(--color-accent);color:#000;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;">--</div>
-                <div class="user-info" style="flex:1;">
-                    <span class="user-name" id="sidebar-name">Loading...</span>
-                    <span class="user-role" id="sidebar-email" style="font-size:0.7rem;"></span>
+            <div class="user-profile-footer">
+                <div class="user-avatar">AD</div>
+                <div class="user-info">
+                    <span class="user-name">Admin Streamer</span>
+                    <span class="user-role">Lead Producer</span>
                 </div>
-                <button onclick="BFX.logout()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.75rem;padding:4px 8px;border-radius:4px;" title="Logout">&#x2192;</button>
             </div>
-            <script>
-            // Populate sidebar user info
-            if(window.BFX_USER){
-                document.getElementById('sidebar-avatar').textContent = window.BFX_USER.initials || '??';
-                document.getElementById('sidebar-name').textContent = window.BFX_USER.fullName || 'User';
-                document.getElementById('sidebar-email').textContent = window.BFX_USER.email || '';
-                document.getElementById('sidebar-avatar').style.background = window.BFX_USER.avatarColor || '#10b981';
-            }
-            window.BFX = { logout: function() {
-                localStorage.removeItem('bfx_token');
-                localStorage.removeItem('bfx_user');
-                window.location.href = '/login.html';
-            }};
-            </script>
         </aside>
 
         <!-- Right Main Panel Container -->
@@ -76,351 +61,366 @@
             
             <div class="content-header">
                 <div class="header-title">
-                    <h2>Roster Database Setup</h2>
-                    <p>Add tournaments, create soccer club franchises, adjust player stats and upload circular profile pictures.</p>
-                </div>
-                <div>
-                    <button class="btn-primary" id="btn-create-tournament">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Add Tournament
-                    </button>
+                    <h2>Live Match Production Desk</h2>
+                    <p>Configure matchups, control the game clock, trigger graphical slides, and register live goals/cards.</p>
                 </div>
             </div>
 
-            <div class="setup-grid">
+            <!-- SECTION A: MATCH WIZARD SETUP PANELS -->
+            <div id="match-wizard-container" class="glass-panel wizard-panel">
+                <div class="wizard-header">
+                    <h3 id="wizard-title" style="font-family: var(--font-display); font-size:1.5rem; margin-bottom: 5px;">League Configuration</h3>
+                    <p id="wizard-subtitle" style="font-size:0.85rem; color:var(--color-text-muted);">Step 1 of 4: Choose tournament for active stream</p>
+                </div>
+
+                <div class="wizard-steps-indicator">
+                    <div class="wizard-step-node active" id="step-node-1">1</div>
+                    <div class="wizard-step-node" id="step-node-2">2</div>
+                    <div class="wizard-step-node" id="step-node-3">3</div>
+                    <div class="wizard-step-node" id="step-node-4">4</div>
+                </div>
+
+                <!-- STEP 1: Select Tournament -->
+                <div class="wizard-step-content" id="wiz-step-1">
+                    <div class="auth-form-group" style="margin-bottom: 25px;">
+                        <label for="wiz-select-tournament">Tournament League</label>
+                        <select id="wiz-select-tournament" style="width:100%;">
+                            <!-- Dynamically loaded -->
+                        </select>
+                    </div>
+                    <div style="text-align: right;">
+                        <button class="btn-primary" id="btn-wiz-next-1">Next Step</button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Matchup Selection -->
+                <div class="wizard-step-content" id="wiz-step-2" style="display: none;">
+                    <div class="matchup-selector">
+                        <div class="glass-panel matchup-team-card">
+                            <label style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-accent); font-weight:600;">Home Team (A)</label>
+                            <select id="wiz-select-team-a" style="width:100%;"></select>
+                        </div>
+                        <div class="matchup-vs">VS</div>
+                        <div class="glass-panel matchup-team-card">
+                            <label style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-blue); font-weight:600;">Away Team (B)</label>
+                            <select id="wiz-select-team-b" style="width:100%;"></select>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <button class="btn-secondary" id="btn-wiz-back-2">Back</button>
+                        <button class="btn-primary" id="btn-wiz-next-2">Next Step</button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Match Details Metadata -->
+                <div class="wizard-step-content" id="wiz-step-3" style="display: none;">
+                    <div class="form-grid" style="margin-bottom: 25px;">
+                        <div class="auth-form-group">
+                            <label for="wiz-input-stadium">Stadium Arena Name</label>
+                            <input type="text" id="wiz-input-stadium" placeholder="Santiago Bernabéu" value="Santiago Bernabéu" required>
+                        </div>
+                        <div class="auth-form-group">
+                            <label for="wiz-input-referee">Head Referee / Linesman</label>
+                            <input type="text" id="wiz-input-referee" placeholder="Szymon Marciniak" value="Szymon Marciniak" required>
+                        </div>
+                        <div class="auth-form-group">
+                            <label for="wiz-input-casters">Commentators / Casters</label>
+                            <input type="text" id="wiz-input-casters" placeholder="Martin Tyler & Alan Smith" value="Martin Tyler & Peter Drury" required>
+                        </div>
+                        <div class="auth-form-group">
+                            <label for="wiz-input-duration">Half Time Duration (minutes)</label>
+                            <input type="number" id="wiz-input-duration" min="1" max="90" value="45" required>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <button class="btn-secondary" id="btn-wiz-back-3">Back</button>
+                        <button class="btn-primary" id="btn-wiz-next-3">Ready to Stream</button>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Pre-kickoff Hub (Show vs, Casters, etc.) -->
+                <div class="wizard-step-content" id="wiz-step-4" style="display: none; text-align: center;">
+                    <div class="glass-panel" style="padding: 25px; margin-bottom: 25px; text-align: left; background: rgba(0,0,0,0.3);">
+                        <h4 style="font-family: var(--font-display); margin-bottom: 10px; color: var(--color-accent);">Pre-Match Broadcaster Controls</h4>
+                        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom: 15px;">Activate introductory overlays to show viewers before starting the game:</p>
+                        
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 20px;">
+                            <button class="btn-secondary btn-prematch-toggle" data-graphic="vs">Match VS Plate</button>
+                            <button class="btn-secondary btn-prematch-toggle" data-graphic="lineups">Team Squad lists</button>
+                            <button class="btn-secondary btn-prematch-toggle" data-graphic="scoreboard">Header Scoreboard</button>
+                        </div>
+
+                        <div style="background: rgba(239, 68, 68, 0.1); border:1px solid rgba(239,68,68,0.25); padding:12px; border-radius:8px; display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:1.8rem;">📢</span>
+                            <p style="font-size:0.8rem; color:#fca5a5; line-height:1.4;"><strong>KICK-OFF NOTE:</strong> Please adjust your OBS browser scene first. When the referee blows the whistle to start the match, click the glowing <strong>KICK-OFF</strong> button below to start the game clock and enter the live desk!</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <button class="btn-secondary" id="btn-wiz-back-4">Back</button>
+                        <button class="btn-primary" id="btn-kickoff-action" style="padding: 14px 40px; font-size:1.15rem; background:linear-gradient(135deg, var(--color-accent), #047857); box-shadow: 0 0 20px var(--color-accent-glow); animation: spin-pulse 2s infinite ease-in-out;">KICK-OFF MATCH</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION B: MAIN LIVE OPERATIONS DASHBOARD -->
+            <div id="live-dashboard-container" class="live-control-layout" style="display: none;">
                 
-                <!-- Roster tree panel -->
-                <section class="glass-panel roster-tree">
-                    <h3 class="tree-title">League Navigator</h3>
-                    <ul class="tree-list" id="navigator-tree-list">
-                        <!-- Populated dynamically via JS -->
-                    </ul>
+                <!-- 1. LEFT TEAM A PANEL -->
+                <section class="glass-panel team-control-panel" id="panel-team-a">
+                    <div class="team-control-header">
+                        <div class="team-control-badge" id="ctrl-badge-a"></div>
+                        <div class="team-control-info">
+                            <h4 id="ctrl-name-a">Team A</h4>
+                            <span style="font-size:0.75rem; color:var(--color-text-muted);">HOME SIDE</span>
+                        </div>
+                        <div class="team-control-score" id="ctrl-score-a">0</div>
+                    </div>
+
+                    <div class="action-buttons-grid">
+                        <button class="action-btn btn-goal-action" data-team="A" data-action="goal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                            Goal Scored
+                        </button>
+                        <button class="action-btn btn-foul-action" data-team="A" data-action="foul">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Foul
+                        </button>
+                        <button class="action-btn btn-card-action" data-team="A" data-action="yellow">
+                            <svg viewBox="0 0 24 24" width="16" height="16" style="display:inline-block; vertical-align:middle; margin-right:4px;"><rect x="5" y="3" width="14" height="18" rx="2" fill="var(--color-yellow)"/></svg>
+                            Yellow Card
+                        </button>
+                        <button class="action-btn btn-card-action" data-team="A" data-action="red">
+                            <svg viewBox="0 0 24 24" width="16" height="16" style="display:inline-block; vertical-align:middle; margin-right:4px;"><rect x="5" y="3" width="14" height="18" rx="2" fill="var(--color-red)"/></svg>
+                            Red Card
+                        </button>
+                        <button class="action-btn btn-sub-action" data-team="A" data-action="substitution" style="grid-column: span 2;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="8 21 3 21 3 16"/><line x1="3" y1="21" x2="20" y2="4"/></svg>
+                            Substitution / Player Change
+                        </button>
+                        <button class="action-btn btn-secondary" data-team="A" data-action="offside" style="grid-column: span 2; border-color:rgba(255,255,255,0.05); font-weight:normal;">
+                            Offside
+                        </button>
+                    </div>
+
+                    <!-- Quick team line stats visualizer -->
+                    <div style="margin-top: 15px; display:flex; flex-direction:column; gap:10px;">
+                        <h5 style="font-size:0.8rem; text-transform:uppercase; color:var(--color-text-dim);">Live Match stats A</h5>
+                        <div class="form-grid" style="gap:10px;">
+                            <div class="auth-form-group" style="padding:0;">
+                                <label style="font-size:0.75rem;">Total Shots</label>
+                                <input type="number" id="stats-shots-a" class="quick-input ctrl-stat-cell" data-team="A" data-stat="shots" value="0" min="0" style="width:100%;">
+                            </div>
+                            <div class="auth-form-group" style="padding:0;">
+                                <label style="font-size:0.75rem;">Shots On Target</label>
+                                <input type="number" id="stats-sot-a" class="quick-input ctrl-stat-cell" data-team="A" data-stat="sot" value="0" min="0" style="width:100%;">
+                            </div>
+                            <div class="auth-form-group" style="padding:0;">
+                                <label style="font-size:0.75rem;">Corners</label>
+                                <input type="number" id="stats-corners-a" class="quick-input ctrl-stat-cell" data-team="A" data-stat="corners" value="0" min="0" style="width:100%;">
+                            </div>
+                            <div class="auth-form-group" style="padding:0;">
+                                <label style="font-size:0.75rem;">Offsides</label>
+                                <input type="number" id="stats-offsides-a" class="quick-input ctrl-stat-cell" data-team="A" data-stat="offsides" value="0" min="0" style="width:100%;">
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- Detailed editor panel -->
-                <section class="glass-panel roster-editor" id="roster-editor-container">
+                <!-- 2. CENTER CLOCK & GLOBAL GRAPHS SWITCHES -->
+                <section class="center-control-panel">
                     
-                    <!-- Welcome view (shown initially) -->
-                    <div class="editor-welcome" id="editor-welcome-view">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>
-                        </svg>
-                        <div>
-                            <h3 style="font-family: var(--font-display); margin-bottom: 5px; color: white;">Roster Panel Idle</h3>
-                            <p style="font-size: 0.9rem;">Select a tournament or club team on the left navigator to start adjustments.</p>
+                    <!-- Game Clock Panel -->
+                    <div class="glass-panel clock-dashboard">
+                        <span class="clock-half-badge" id="lbl-clock-half">1ST HALF</span>
+                        <div class="clock-readout" id="lbl-live-timer">00:00</div>
+                        
+                        <div class="clock-controls">
+                            <button id="btn-clock-play" class="btn-primary" style="padding: 10px 20px;">Start Clock</button>
+                            <button id="btn-clock-pause" class="btn-secondary" style="display: none;">Pause</button>
+                            <button id="btn-next-half" class="btn-secondary">Next Half</button>
+                        </div>
+                        
+                        <div class="clock-adjusters">
+                            <button id="btn-clock-adjust-plus">+1m</button>
+                            <button id="btn-clock-adjust-minus">-1m</button>
+                            <button id="btn-reset-match-control" class="btn-danger" style="padding:4px 8px; font-size:0.75rem;">Reset</button>
                         </div>
                     </div>
 
-                    <!-- Tournament View Form (shown when tournament is selected) -->
-                    <div id="tournament-editor-view" style="display: none;">
-                        <div class="team-header-card">
-                            <div class="team-identity">
-                                <div class="team-badge-large" id="badge-tournament-large" style="width: 60px; height: 60px; border-radius: 50%; padding: 4px;">
-                                    <!-- Dynamic Logo -->
+                    <!-- Stream graphic switcher boards -->
+                    <div class="glass-panel graphic-switchboard">
+                        <h4 class="switchboard-title">Overlay Graphics switch</h4>
+                        <div class="switchboard-grid">
+                            
+                            <!-- Scoreboard toggle -->
+                            <div class="graphic-toggle-row">
+                                <div class="graphic-toggle-info">
+                                    <span class="graphic-toggle-name">Header Scoreboard</span>
+                                    <span class="graphic-toggle-desc">Show Top score banner overlay</span>
                                 </div>
-                                <div class="team-name-title">
-                                    <h3 id="lbl-tournament-name">Tournament</h3>
-                                    <span>Tournament Control Node</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-graphic-scoreboard">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <!-- Lineups list toggle -->
+                            <div class="graphic-toggle-row">
+                                <div class="graphic-toggle-info">
+                                    <span class="graphic-toggle-name">Club Squad Lineups</span>
+                                    <span class="graphic-toggle-desc">Show home & away rosters screen</span>
                                 </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-graphic-lineups">
+                                    <span class="slider"></span>
+                                </label>
                             </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn-secondary" id="btn-edit-tournament-details">Edit Details</button>
-                                <button class="btn-danger" id="btn-delete-tournament-action">Delete Tournament</button>
+
+                            <!-- VS Plate toggle -->
+                            <div class="graphic-toggle-row">
+                                <div class="graphic-toggle-info">
+                                    <span class="graphic-toggle-name">Matchup VS banner</span>
+                                    <span class="graphic-toggle-desc">Show starter Match Info Plate</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-graphic-vs">
+                                    <span class="slider"></span>
+                                </label>
                             </div>
-                        </div>
 
-                        <div class="roster-section-header">
-                            <h4 style="font-family: var(--font-display);">Tournament Teams</h4>
-                            <button class="btn-primary" id="btn-add-team-modal">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                Add Club Team
-                            </button>
-                        </div>
+                            <!-- Stats plate toggle -->
+                            <div class="graphic-toggle-row">
+                                <div class="graphic-toggle-info">
+                                    <span class="graphic-toggle-name">Comparative Stats Board</span>
+                                    <span class="graphic-toggle-desc">Show shots, fouls & saves comparison</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-graphic-stats">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
 
-                        <div class="roster-table-wrapper">
-                            <table class="roster-table">
-                                <thead>
-                                    <tr>
-                                        <th>Club Badge</th>
-                                        <th>Club Name</th>
-                                        <th>Short Code</th>
-                                        <th>Team Manager/Coach</th>
-                                        <th>Roster Size</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tournament-teams-tbody">
-                                    <!-- Populated dynamically -->
-                                </tbody>
-                            </table>
                         </div>
                     </div>
 
-                    <!-- Team View Form (shown when team is selected) -->
-                    <div id="team-editor-view" style="display: none;">
-                        <div class="team-header-card">
-                            <div class="team-identity">
-                                <div class="team-badge-large" id="badge-team-large">
-                                    <!-- Vector team badge svg -->
-                                </div>
-                                <div class="team-name-title">
-                                    <h3 id="lbl-team-name">Team Name</h3>
-                                    <div class="team-coach-name" id="lbl-team-coach">Manager: Carlo Ancelotti</div>
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn-secondary" id="btn-edit-team-details">Edit Colors & Manager</button>
-                                <button class="btn-danger" id="btn-delete-team-action">Delete Team</button>
-                            </div>
+                    <!-- Match live timeline log -->
+                    <div class="glass-panel timeline-log">
+                        <div class="timeline-header">
+                            <span style="font-weight: 700; font-size:0.8rem; text-transform: uppercase;">Match Event Feed</span>
+                            <span style="color:var(--color-accent); font-family:var(--font-display); font-size:0.8rem;" id="lbl-feed-count">0 Events</span>
                         </div>
-
-                        <div class="roster-section-header">
-                            <h4 style="font-family: var(--font-display);">Squad Roster Spreadsheet</h4>
-                            <button class="btn-primary" id="btn-add-player-modal">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                Create Player Profile
-                            </button>
-                        </div>
-
-                        <div class="roster-table-wrapper">
-                            <table class="roster-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 60px;">Shirt</th>
-                                        <th>Player Name</th>
-                                        <th style="width: 80px;">Pos</th>
-                                        <th style="width: 50px;">GL</th>
-                                        <th style="width: 50px;">SH</th>
-                                        <th style="width: 50px;">SOT</th>
-                                        <th style="width: 50px;">FL</th>
-                                        <th style="width: 50px;">YC</th>
-                                        <th style="width: 50px;">RC</th>
-                                        <th style="width: 50px;">OF</th>
-                                        <th style="width: 50px;">INJ</th>
-                                        <th style="width: 60px; text-align: center;">Delete</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="team-roster-tbody">
-                                    <!-- Populated dynamically with inline stats editors -->
-                                </tbody>
-                            </table>
-                        </div>
+                        <ul class="timeline-list" id="timeline-event-feed-list">
+                            <!-- Populated dynamically with matches events logs -->
+                        </ul>
                     </div>
 
                 </section>
+
+                <!-- 3. RIGHT TEAM B PANEL -->
+                <section class="glass-panel team-control-panel" id="panel-team-b" style="--team-color: var(--color-blue);">
+                    <div class="team-control-header" style="flex-direction: row-reverse;">
+                        <div class="team-control-badge" id="ctrl-badge-b"></div>
+                        <div class="team-control-info" style="text-align: right;">
+                            <h4 id="ctrl-name-b">Team B</h4>
+                            <span style="font-size:0.75rem; color:var(--color-text-muted);">AWAY SIDE</span>
+                        </div>
+                        <div class="team-control-score" id="ctrl-score-b" style="margin-left: 0; margin-right: auto;">0</div>
+                    </div>
+
+                    <div class="action-buttons-grid">
+                        <button class="action-btn btn-goal-action" data-team="B" data-action="goal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                            Goal Scored
+                        </button>
+                        <button class="action-btn btn-foul-action" data-team="B" data-action="foul">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Foul
+                        </button>
+                        <button class="action-btn btn-card-action" data-team="B" data-action="yellow">
+                            <svg viewBox="0 0 24 24" width="16" height="16" style="display:inline-block; vertical-align:middle; margin-right:4px;"><rect x="5" y="3" width="14" height="18" rx="2" fill="var(--color-yellow)"/></svg>
+                            Yellow Card
+                        </button>
+                        <button class="action-btn btn-card-action" data-team="B" data-action="red">
+                            <svg viewBox="0 0 24 24" width="16" height="16" style="display:inline-block; vertical-align:middle; margin-right:4px;"><rect x="5" y="3" width="14" height="18" rx="2" fill="var(--color-red)"/></svg>
+                            Red Card
+                        </button>
+                        <button class="action-btn btn-sub-action" data-team="B" data-action="substitution" style="grid-column: span 2;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="8 21 3 21 3 16"/><line x1="3" y1="21" x2="20" y2="4"/></svg>
+                            Substitution / Player Change
+                        </button>
+                        <button class="action-btn btn-secondary" data-team="B" data-action="offside" style="grid-column: span 2; border-color:rgba(255,255,255,0.05); font-weight:normal;">
+                            Offside
+                        </button>
+                    </div>
+
+                    <!-- Quick team line stats visualizer -->
+                    <div style="margin-top: 15px; display:flex; flex-direction:column; gap:10px;">
+                        <h5 style="font-size:0.8rem; text-transform:uppercase; color:var(--color-text-dim);">Live Match stats B</h5>
+                        <div class="form-grid" style="gap:10px;">
+                            <div class="auth-form-group" style="padding:0;">
+                                <label style="font-size:0.75rem;">Total Shots</label>
+                                <input type="number" id="stats-shots-b" class="quick-input ctrl-stat-cell" data-team="B" data-stat="shots" value="0" min="0" style="width:100%;">
+                            </div>
+                            <div class="auth-form-group" style="padding:0;">
+                                <label style="font-size:0.75rem;">Shots On Target</label>
+                                <input type="number" id="stats-sot-b" class="quick-input ctrl-stat-cell" data-team="B" data-stat="sot" value="0" min="0" style="width:100%;">
+                            </div>
+                            <div class="auth-form-group" style="padding:0;">
+                                <label style="font-size:0.75rem;">Corners</label>
+                                <input type="number" id="stats-corners-b" class="quick-input ctrl-stat-cell" data-team="B" data-stat="corners" value="0" min="0" style="width:100%;">
+                            </div>
+                            <div class="auth-form-group" style="padding:0;">
+                                <label style="font-size:0.75rem;">Offsides</label>
+                                <input type="number" id="stats-offsides-b" class="quick-input ctrl-stat-cell" data-team="B" data-stat="offsides" value="0" min="0" style="width:100%;">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
 
-    <!-- Modal: Add Tournament -->
-    <div class="modal-overlay" id="modal-add-tournament">
-        <div class="glass-panel auth-modal">
-            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Create New Tournament</h3>
-            <form id="form-add-tournament" onsubmit="event.preventDefault();">
-                <div class="auth-form-group">
-                    <label for="input-tournament-name">Tournament Name</label>
-                    <input type="text" id="input-tournament-name" placeholder="Champions World Cup" required>
-                </div>
-                <div class="auth-form-group" style="margin-top: 15px;">
-                    <label>Tournament Logo Badge</label>
-                    <div class="image-upload-wrapper">
-                        <label class="image-upload-preview" id="label-t-logo-preview">
-                            <input type="file" id="input-t-logo" accept="image/*" style="display: none;">
-                            <img src="" id="img-t-logo-preview" style="display: none;">
-                            <svg id="svg-t-logo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
-                            </svg>
-                        </label>
-                        <span style="font-size: 0.8rem; color: var(--color-text-dim);">Upload square crest/logo badge.</span>
-                    </div>
-                </div>
-                <div class="auth-actions" style="margin-top: 20px;">
-                    <button type="submit" class="btn-primary">Create Tournament</button>
-                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
-                </div>
-            </form>
+    <!-- Modal: Select Player roster action -->
+    <div class="modal-overlay" id="modal-select-player-action">
+        <div class="glass-panel auth-modal" style="max-width: 480px;">
+            <h3 style="font-family: var(--font-display); margin-bottom: 5px; color: var(--color-accent);" id="lbl-picker-title">Select Scorer</h3>
+            <p style="font-size: 0.8rem; color: var(--color-text-muted);" id="lbl-picker-desc">Choose a player to register this event.</p>
+            
+            <div class="player-picker-grid" id="picker-players-list">
+                <!-- Loaded dynamically -->
+            </div>
+            <div class="auth-actions" style="margin-top: 15px;">
+                <button type="button" class="btn-secondary btn-close-modal" style="width:100%;">Cancel Action</button>
+            </div>
         </div>
     </div>
 
-    <!-- Modal: Edit Tournament Details -->
-    <div class="modal-overlay" id="modal-edit-tournament">
-        <div class="glass-panel auth-modal">
-            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Edit Tournament Details</h3>
-            <form id="form-edit-tournament" onsubmit="event.preventDefault();">
-                <input type="hidden" id="edit-t-id">
-                <div class="auth-form-group">
-                    <label for="edit-t-name">Tournament Name</label>
-                    <input type="text" id="edit-t-name" required>
-                </div>
-                <div class="auth-form-group" style="margin-top: 15px;">
-                    <label>Tournament Logo Badge</label>
-                    <div class="image-upload-wrapper">
-                        <label class="image-upload-preview" id="label-edit-t-logo-preview">
-                            <input type="file" id="edit-t-logo" accept="image/*" style="display: none;">
-                            <img src="" id="img-edit-t-logo-preview" style="display: none;">
-                            <svg id="svg-edit-t-logo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
-                            </svg>
-                        </label>
-                        <span style="font-size: 0.8rem; color: var(--color-text-dim);">Change tournament logo crest.</span>
-                    </div>
-                </div>
-                <div class="auth-actions" style="margin-top: 20px;">
-                    <button type="submit" class="btn-primary">Save Details</button>
-                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
-                </div>
-            </form>
+    <!-- Modal: Substitution Selector -->
+    <div class="modal-overlay" id="modal-select-sub-action">
+        <div class="glass-panel auth-modal" style="max-width: 480px;">
+            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">squad substitution</h3>
+            
+            <div class="auth-form-group">
+                <label>Player leaving field (OUT)</label>
+                <select id="select-sub-out" style="width:100%;"></select>
+            </div>
+            
+            <div class="auth-form-group">
+                <label>Player entering field (IN)</label>
+                <select id="select-sub-in" style="width:100%;"></select>
+            </div>
+            
+            <div class="auth-actions" style="margin-top: 25px;">
+                <button type="button" id="btn-submit-sub-action" class="btn-primary">Register Substitution</button>
+                <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
+            </div>
         </div>
     </div>
 
-    <!-- Modal: Add Team -->
-    <div class="modal-overlay" id="modal-add-team">
-        <div class="glass-panel auth-modal" style="max-width: 500px;">
-            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Create Club Franchise</h3>
-            <form id="form-add-team" onsubmit="event.preventDefault();">
-                <div class="form-grid">
-                    <div class="auth-form-group">
-                        <label for="input-team-name">Club Full Name</label>
-                        <input type="text" id="input-team-name" placeholder="Real Madrid" required>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="input-team-short">Short Code (3 chars)</label>
-                        <input type="text" id="input-team-short" placeholder="RMA" maxlength="3" style="text-transform: uppercase;" required>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="input-team-pcolor">Primary Team Color</label>
-                        <input type="color" id="input-team-pcolor" value="#1e3a8a" style="height: 42px; padding: 2px 5px;">
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="input-team-scolor">Secondary Accent Color</label>
-                        <input type="color" id="input-team-scolor" value="#f59e0b" style="height: 42px; padding: 2px 5px;">
-                    </div>
-                    <div class="auth-form-group form-grid-full">
-                        <label for="input-team-coach">Manager / Coach Name</label>
-                        <input type="text" id="input-team-coach" placeholder="Carlo Ancelotti" required>
-                    </div>
-                    <div class="auth-form-group form-grid-full">
-                        <label>Club Crest Logo</label>
-                        <div class="image-upload-wrapper">
-                            <label class="image-upload-preview" id="label-team-logo-preview">
-                                <input type="file" id="input-team-logo" accept="image/*" style="display: none;">
-                                <img src="" id="img-team-logo-preview" style="display: none;">
-                                <svg id="svg-team-logo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
-                                </svg>
-                            </label>
-                            <span style="font-size: 0.8rem; color: var(--color-text-dim);">Upload emblem crest (Base64).</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-actions" style="margin-top: 15px;">
-                    <button type="submit" class="btn-primary">Register Club</button>
-                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Edit Team details -->
-    <div class="modal-overlay" id="modal-edit-team">
-        <div class="glass-panel auth-modal" style="max-width: 500px;">
-            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Edit Club Details</h3>
-            <form id="form-edit-team" onsubmit="event.preventDefault();">
-                <input type="hidden" id="edit-team-id">
-                <div class="form-grid">
-                    <div class="auth-form-group">
-                        <label for="edit-team-name">Club Full Name</label>
-                        <input type="text" id="edit-team-name" required>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="edit-team-short">Short Code</label>
-                        <input type="text" id="edit-team-short" maxlength="3" style="text-transform: uppercase;" required>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="edit-team-pcolor">Primary Color</label>
-                        <input type="color" id="edit-team-pcolor" style="height: 42px; padding: 2px 5px;">
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="edit-team-scolor">Secondary Accent Color</label>
-                        <input type="color" id="edit-team-scolor" style="height: 42px; padding: 2px 5px;">
-                    </div>
-                    <div class="auth-form-group form-grid-full">
-                        <label for="edit-team-coach">Manager / Coach Name</label>
-                        <input type="text" id="edit-team-coach" required>
-                    </div>
-                    <div class="auth-form-group form-grid-full">
-                        <label>Club Crest Logo</label>
-                        <div class="image-upload-wrapper">
-                            <label class="image-upload-preview" id="label-edit-team-logo-preview">
-                                <input type="file" id="edit-team-logo" accept="image/*" style="display: none;">
-                                <img src="" id="img-edit-team-logo-preview" style="display: none;">
-                                <svg id="svg-edit-team-logo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
-                                </svg>
-                            </label>
-                            <span style="font-size: 0.8rem; color: var(--color-text-dim);">Change club emblem crest.</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-actions" style="margin-top: 15px;">
-                    <button type="submit" class="btn-primary">Save Details</button>
-                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Add Player -->
-    <div class="modal-overlay" id="modal-add-player">
-        <div class="glass-panel auth-modal" style="max-width: 500px;">
-            <h3 style="font-family: var(--font-display); margin-bottom: 20px; color: var(--color-accent);">Create Player Profile</h3>
-            <form id="form-add-player" onsubmit="event.preventDefault();">
-                <div class="form-grid">
-                    <div class="auth-form-group">
-                        <label for="input-player-name">Player Full Name</label>
-                        <input type="text" id="input-player-name" placeholder="Vinicius Junior" required>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="input-player-number">Shirt Number (1-99)</label>
-                        <input type="number" id="input-player-number" min="1" max="99" placeholder="7" required>
-                    </div>
-                    <div class="auth-form-group">
-                        <label for="input-player-position">On-Pitch Position</label>
-                        <select id="input-player-position" required>
-                            <option value="GK">Goalkeeper (GK)</option>
-                            <option value="DF">Defender (DF)</option>
-                            <option value="MF">Midfielder (MF)</option>
-                            <option value="FW" selected>Forward (FW)</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Base64 Circular Image Upload -->
-                    <div class="auth-form-group">
-                        <label>Player Photo headshot</label>
-                        <div class="image-upload-wrapper">
-                            <label class="image-upload-preview" id="label-player-photo-preview">
-                                <input type="file" id="input-player-photo" accept="image/*" style="display: none;">
-                                <img src="" id="img-player-photo-preview" style="display: none;">
-                                <svg id="svg-player-photo-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
-                                </svg>
-                            </label>
-                            <span style="font-size: 0.8rem; color: var(--color-text-dim);">Upload headshot image. Converts to Base64 instantly.</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="auth-actions" style="margin-top: 20px;">
-                    <button type="submit" class="btn-primary">Register Player</button>
-                    <button type="button" class="btn-secondary btn-close-modal">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Seeding Layer & Setup controllers -->
-    <script src="js/auth-guard.js"></script>
+    <!-- Seeding Layer & Controller script -->
     <script src="js/db.js"></script>
-    <script src="js/setup.js"></script>
+    <script src="js/control.js"></script>
 </body>
 </html>
