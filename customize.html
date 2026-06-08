@@ -14,7 +14,7 @@
         <aside class="side-nav">
             <div>
                 <div class="brand-header" style="padding-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                    <a href="/" style="display: block; width: 180px; height: 50px;">
+                    <a href="index.html" style="display: block; width: 180px; height: 50px;">
                         <img src="assets/logo.png" alt="BhakundoFX Logo" style="width: 100%; height: 100%; object-fit: contain;">
                     </a>
                 </div>
@@ -47,13 +47,28 @@
                 </ul>
             </div>
 
-            <div class="user-profile-footer">
-                <div class="user-avatar">AD</div>
-                <div class="user-info">
-                    <span class="user-name">Admin Streamer</span>
-                    <span class="user-role">Lead Producer</span>
+            <div class="user-profile-footer" style="cursor:default;">
+                <div class="user-avatar" id="sidebar-avatar" style="background:var(--color-accent);color:#000;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;">--</div>
+                <div class="user-info" style="flex:1;">
+                    <span class="user-name" id="sidebar-name">Loading...</span>
+                    <span class="user-role" id="sidebar-email" style="font-size:0.7rem;"></span>
                 </div>
+                <button onclick="BFX.logout()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.75rem;padding:4px 8px;border-radius:4px;" title="Logout">&#x2192;</button>
             </div>
+            <script>
+            // Populate sidebar user info
+            if(window.BFX_USER){
+                document.getElementById('sidebar-avatar').textContent = window.BFX_USER.initials || '??';
+                document.getElementById('sidebar-name').textContent = window.BFX_USER.fullName || 'User';
+                document.getElementById('sidebar-email').textContent = window.BFX_USER.email || '';
+                document.getElementById('sidebar-avatar').style.background = window.BFX_USER.avatarColor || '#10b981';
+            }
+            window.BFX = { logout: function() {
+                localStorage.removeItem('bfx_token');
+                localStorage.removeItem('bfx_user');
+                window.location.href = '/login.html';
+            }};
+            </script>
         </aside>
 
         <!-- Right Main Panel Container -->
@@ -243,6 +258,7 @@
     </div>
 
     <!-- Seeding Layer & Customizer controllers -->
+    <script src="js/auth-guard.js"></script>
     <script src="js/db.js"></script>
     <script src="js/customize.js"></script>
 </body>
