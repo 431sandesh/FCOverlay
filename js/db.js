@@ -72,77 +72,9 @@ const DB_KEYS = {
 };
 
 const DEFAULT_DATABASE = {
-    tournaments: [
-        { id: 't1', name: 'Champions Elite League', logo: '' },
-        { id: 't2', name: 'Super Football Cup', logo: '' }
-    ],
-    teams: [
-        // Tournament 1 Teams
-        {
-            id: 'team1',
-            tournamentId: 't1',
-            name: 'Real Madrid',
-            shortName: 'RMA',
-            primaryColor: '#1e3a8a', // Deep Blue
-            secondaryColor: '#f59e0b', // Amber/Gold
-            coach: { name: 'Carlo Ancelotti', photo: '' }
-        },
-        {
-            id: 'team2',
-            tournamentId: 't1',
-            name: 'Manchester City',
-            shortName: 'MCI',
-            primaryColor: '#0ea5e9', // Sky Blue
-            secondaryColor: '#1e293b', // Slate Navy
-            coach: { name: 'Pep Guardiola', photo: '' }
-        },
-        // Tournament 2 Teams
-        {
-            id: 'team3',
-            tournamentId: 't2',
-            name: 'Barcelona FC',
-            shortName: 'BAR',
-            primaryColor: '#b91c1c', // Cardinal Red
-            secondaryColor: '#1d4ed8', // Dark Blue
-            coach: { name: 'Hansi Flick', photo: '' }
-        },
-        {
-            id: 'team4',
-            tournamentId: 't2',
-            name: 'Arsenal FC',
-            shortName: 'ARS',
-            primaryColor: '#dc2626', // Red
-            secondaryColor: '#ffffff', // White
-            coach: { name: 'Mikel Arteta', photo: '' }
-        }
-    ],
-    players: [
-        // Real Madrid Players
-        { id: 'p1', teamId: 'team1', name: 'Thibaut Courtois', number: 1, position: 'GK', photo: '', stats: { goals: 0, fouls: 0, shots: 0, shotsOnTarget: 0, yellowCards: 0, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p2', teamId: 'team1', name: 'Eder Militao', number: 3, position: 'DF', photo: '', stats: { goals: 1, fouls: 8, shots: 4, shotsOnTarget: 2, yellowCards: 2, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p3', teamId: 'team1', name: 'Antonio Rüdiger', number: 22, position: 'DF', photo: '', stats: { goals: 2, fouls: 10, shots: 6, shotsOnTarget: 3, yellowCards: 1, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p4', teamId: 'team1', name: 'Jude Bellingham', number: 5, position: 'MF', photo: '', stats: { goals: 12, fouls: 15, shots: 22, shotsOnTarget: 14, yellowCards: 3, redCards: 0, offsides: 1, injuries: 0 } },
-        { id: 'p5', teamId: 'team1', name: 'Luka Modric', number: 10, position: 'MF', photo: '', stats: { goals: 4, fouls: 3, shots: 10, shotsOnTarget: 5, yellowCards: 0, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p6', teamId: 'team1', name: 'Vinicius Junior', number: 7, position: 'FW', photo: '', stats: { goals: 21, fouls: 9, shots: 38, shotsOnTarget: 24, yellowCards: 4, redCards: 0, offsides: 8, injuries: 0 } },
-        { id: 'p7', teamId: 'team1', name: 'Kylian Mbappe', number: 9, position: 'FW', photo: '', stats: { goals: 24, fouls: 2, shots: 42, shotsOnTarget: 29, yellowCards: 1, redCards: 0, offsides: 11, injuries: 0 } },
-        { id: 'p8', teamId: 'team1', name: 'Rodrygo Goes', number: 11, position: 'FW', photo: '', stats: { goals: 9, fouls: 4, shots: 18, shotsOnTarget: 11, yellowCards: 0, redCards: 0, offsides: 3, injuries: 0 } },
-        { id: 'p9', teamId: 'team1', name: 'Eduardo Camavinga', number: 6, position: 'MF', photo: '', stats: { goals: 2, fouls: 14, shots: 8, shotsOnTarget: 4, yellowCards: 5, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p10', teamId: 'team1', name: 'Federico Valverde', number: 8, position: 'MF', photo: '', stats: { goals: 6, fouls: 7, shots: 15, shotsOnTarget: 8, yellowCards: 1, redCards: 0, offsides: 1, injuries: 0 } },
-        { id: 'p11', teamId: 'team1', name: 'Dani Carvajal', number: 2, position: 'DF', photo: '', stats: { goals: 1, fouls: 12, shots: 5, shotsOnTarget: 2, yellowCards: 3, redCards: 0, offsides: 1, injuries: 0 } },
-
-        // Manchester City Players
-        { id: 'p12', teamId: 'team2', name: 'Ederson Moraes', number: 31, position: 'GK', photo: '', stats: { goals: 0, fouls: 1, shots: 0, shotsOnTarget: 0, yellowCards: 1, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p13', teamId: 'team2', name: 'Ruben Dias', number: 3, position: 'DF', photo: '', stats: { goals: 1, fouls: 6, shots: 5, shotsOnTarget: 2, yellowCards: 2, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p14', teamId: 'team2', name: 'Manuel Akanji', number: 25, position: 'DF', photo: '', stats: { goals: 2, fouls: 7, shots: 4, shotsOnTarget: 2, yellowCards: 1, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p15', teamId: 'team2', name: 'Rodri Hernandez', number: 16, position: 'MF', photo: '', stats: { goals: 7, fouls: 16, shots: 14, shotsOnTarget: 9, yellowCards: 4, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p16', teamId: 'team2', name: 'Kevin De Bruyne', number: 17, position: 'MF', photo: '', stats: { goals: 10, fouls: 5, shots: 26, shotsOnTarget: 16, yellowCards: 1, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p17', teamId: 'team2', name: 'Phil Foden', number: 47, position: 'MF', photo: '', stats: { goals: 16, fouls: 3, shots: 31, shotsOnTarget: 19, yellowCards: 0, redCards: 0, offsides: 2, injuries: 0 } },
-        { id: 'p18', teamId: 'team2', name: 'Erling Haaland', number: 9, position: 'FW', photo: '', stats: { goals: 32, fouls: 8, shots: 55, shotsOnTarget: 38, yellowCards: 2, redCards: 0, offsides: 14, injuries: 0 } },
-        { id: 'p19', teamId: 'team2', name: 'Bernardo Silva', number: 20, position: 'MF', photo: '', stats: { goals: 8, fouls: 11, shots: 16, shotsOnTarget: 10, yellowCards: 2, redCards: 0, offsides: 1, injuries: 0 } },
-        { id: 'p20', teamId: 'team2', name: 'Jeremy Doku', number: 11, position: 'FW', photo: '', stats: { goals: 5, fouls: 4, shots: 15, shotsOnTarget: 9, yellowCards: 1, redCards: 0, offsides: 4, injuries: 0 } },
-        { id: 'p21', teamId: 'team2', name: 'Josko Gvardiol', number: 24, position: 'DF', photo: '', stats: { goals: 4, fouls: 9, shots: 10, shotsOnTarget: 6, yellowCards: 1, redCards: 0, offsides: 0, injuries: 0 } },
-        { id: 'p22', teamId: 'team2', name: 'Kyle Walker', number: 2, position: 'DF', photo: '', stats: { goals: 0, fouls: 10, shots: 3, shotsOnTarget: 1, yellowCards: 2, redCards: 0, offsides: 1, injuries: 0 } }
-    ]
+    tournaments: [],
+    teams: [],
+    players: []
 };
 
 const DEFAULT_OVERLAY_CONFIG = {
@@ -193,21 +125,24 @@ const DB = {
     getDb: function() {
         let dbStr = localStorage.getItem(userKey(DB_KEYS.DATABASE));
         if (!dbStr) {
-            this.saveDb(DEFAULT_DATABASE);
-            return DEFAULT_DATABASE;
+            // Start with clean empty database — no demo data
+            const empty = { tournaments: [], teams: [], players: [] };
+            this.saveDb(empty);
+            return empty;
         }
         try {
             const parsed = JSON.parse(dbStr);
-            // Ensure coaches exist and photos default
             if (!parsed.tournaments || !parsed.teams || !parsed.players) {
-                this.saveDb(DEFAULT_DATABASE);
-                return DEFAULT_DATABASE;
+                const empty = { tournaments: [], teams: [], players: [] };
+                this.saveDb(empty);
+                return empty;
             }
             return parsed;
         } catch (e) {
-            console.error("Failed to parse DB from localStorage, resetting...", e);
-            this.saveDb(DEFAULT_DATABASE);
-            return DEFAULT_DATABASE;
+            console.error("Failed to parse DB, resetting...", e);
+            const empty = { tournaments: [], teams: [], players: [] };
+            this.saveDb(empty);
+            return empty;
         }
     },
 
