@@ -4,26 +4,23 @@
 // HELPER: Generate Beautiful SVG Avatars with Team Colors
 // -------------------------------------------------------------
 function generateSvgAvatar(initials, primaryColor, secondaryColor) {
-    const encInitials = encodeURIComponent(initials);
-    const encPrimary = encodeURIComponent(primaryColor);
-    const encSecondary = encodeURIComponent(secondaryColor);
-    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">` +
-        `<circle cx="50" cy="50" r="46" fill="${encPrimary}" stroke="${encSecondary}" stroke-width="4"/>` +
-        `<circle cx="50" cy="38" r="18" fill="white" opacity="0.15"/>` +
-        `<path d="M 20,82 C 20,62 30,55 50,55 C 70,55 80,62 80,82 Z" fill="white" opacity="0.15"/>` +
-        `<text x="50" y="58" font-family="'Space Grotesk', sans-serif" font-weight="bold" font-size="28" fill="white" text-anchor="middle" dominant-baseline="middle">${encInitials}</text>` +
-        `</svg>`;
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">' +
+        '<circle cx="50" cy="50" r="46" fill="' + primaryColor + '" stroke="' + secondaryColor + '" stroke-width="4"/>' +
+        '<circle cx="50" cy="38" r="18" fill="white" opacity="0.15"/>' +
+        '<path d="M 20,82 C 20,62 30,55 50,55 C 70,55 80,62 80,82 Z" fill="white" opacity="0.15"/>' +
+        '<text x="50" y="58" font-family="Space Grotesk, sans-serif" font-weight="bold" font-size="28" fill="white" text-anchor="middle" dominant-baseline="middle">' + initials + '</text>' +
+        '</svg>';
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
 
 function generateSvgLogo(name, primaryColor, secondaryColor) {
-    const encInitials = encodeURIComponent(name.substring(0, 3).toUpperCase());
-    const encPrimary = encodeURIComponent(primaryColor);
-    const encSecondary = encodeURIComponent(secondaryColor);
-    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">` +
-        `<polygon points="50,5 90,25 90,75 50,95 10,75 10,25" fill="${encPrimary}" stroke="${encSecondary}" stroke-width="5" stroke-linejoin="round"/>` +
-        `<polygon points="50,15 80,30 80,70 50,85 20,70 20,30" fill="none" stroke="white" stroke-width="2" opacity="0.5"/>` +
-        `<text x="50" y="52" font-family="'Space Grotesk', sans-serif" font-weight="bold" font-size="24" fill="white" text-anchor="middle" dominant-baseline="middle">${encInitials}</text>` +
-        `</svg>`;
+    const initials = name.substring(0, 3).toUpperCase();
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">' +
+        '<polygon points="50,5 90,25 90,75 50,95 10,75 10,25" fill="' + primaryColor + '" stroke="' + secondaryColor + '" stroke-width="5" stroke-linejoin="round"/>' +
+        '<polygon points="50,15 80,30 80,70 50,85 20,70 20,30" fill="none" stroke="white" stroke-width="2" opacity="0.5"/>' +
+        '<text x="50" y="52" font-family="Space Grotesk, sans-serif" font-weight="bold" font-size="24" fill="white" text-anchor="middle" dominant-baseline="middle">' + initials + '</text>' +
+        '</svg>';
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
 
 // -------------------------------------------------------------
@@ -397,10 +394,11 @@ const DB = {
         const name = tournament ? tournament.name : 'LEA';
         const initials = name.substring(0, 3).toUpperCase();
         const encInitials = encodeURIComponent(initials);
-        return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">` +
-            `<circle cx="50" cy="50" r="46" fill="%23111827" stroke="%2310b981" stroke-width="4"/>` +
-            `<text x="50" y="55" font-family="'Space Grotesk', sans-serif" font-weight="bold" font-size="28" fill="white" text-anchor="middle" dominant-baseline="middle">${encInitials}</text>` +
-            `</svg>`;
+        const tSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">' +
+            '<circle cx="50" cy="50" r="46" fill="#111827" stroke="#10b981" stroke-width="4"/>' +
+            '<text x="50" y="55" font-family="Space Grotesk, sans-serif" font-weight="bold" font-size="28" fill="white" text-anchor="middle" dominant-baseline="middle">' + initials + '</text>' +
+            '</svg>';
+        return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(tSvg)));
     }
 };
 
