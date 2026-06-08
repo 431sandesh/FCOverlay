@@ -1,7 +1,12 @@
 // overlay.js - OBS Broadcast Stream Overlay Sync Controller
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+
+    // ── GET USER ID FROM URL (?uid=5) ─────────────────────────
+    // OBS opens: https://bhakundofx.up.railway.app/overlay.html?uid=5
+    const urlParams = new URLSearchParams(window.location.search);
+    const OVERLAY_UID = urlParams.get('uid'); // null if opened in same browser
+
     // Core database keys mapping (shared from db.js)
     const DB_KEYS = {
         DATABASE: 'bfx_database',
@@ -9,6 +14,35 @@ document.addEventListener('DOMContentLoaded', () => {
         OVERLAY_CONFIG: 'bfx_overlay_config',
         OVERLAY_TRIGGER: 'bfx_overlay_trigger'
     };
+
+    // ── SERVER POLLING (for OBS — no localStorage cross-browser) ─
+    let lastMatchStateStr = '';
+    let lastTriggerStr = '';
+
+    async function pollServerForUpdates() {
+        if (!OVERLAY_UID) return; // same browser — use storage events instead
+        try {
+            const res = await fetch(`/api/public/match/${OVERLAY_UID}`);
+            const json = await res.json();
+            if (!json.data) return;
+
+            const newStr = JSON.stringify(json.data);
+            if (newStr !== lastMatchStateStr) {
+                lastMatchStateStr = newStr;
+                // Update localStorage so DB.getMatchState() works
+                localStorage.setItem(DB_KEYS.MATCH_STATE, newStr);
+                loadBroadcastStateGraphics();
+            }
+        } catch(e) {
+            // Silent fail — overlay keeps showing last state
+        }
+    }
+
+    // Poll every 1.5 seconds when uid is in URL (OBS mode)
+    if (OVERLAY_UID) {
+        pollServerForUpdates(); // immediate first load
+        setInterval(pollServerForUpdates, 1500);
+    }
 
     // Cache DOM Overlay Elements
     const bodyEl = document.body;
@@ -228,16 +262,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------
     // 3. REAL-TIME STORAGE EVENTS SYNC PROCESSOR
     // -------------------------------------------------------------
+    // Storage events work when control + overlay open in SAME browser
+    // For OBS (different browser), server polling above handles updates
     window.addEventListener('storage', (e) => {
-        if (e.key === DB_KEYS.OVERLAY_CONFIG) {
+        if (!e.key) return;
+        if (e.key.includes('overlay_config') || e.key === DB_KEYS.OVERLAY_CONFIG) {
             loadOverlayCustomizerStyles();
-        } else if (e.key === DB_KEYS.MATCH_STATE) {
+        } else if (e.key.includes('match_state') || e.key === DB_KEYS.MATCH_STATE) {
             loadBroadcastStateGraphics();
-        } else if (e.key === DB_KEYS.OVERLAY_TRIGGER) {
+        } else if (e.key.includes('overlay_trigger') || e.key === DB_KEYS.OVERLAY_TRIGGER) {
             const trigger = DB.getLatestTrigger();
-            if (trigger) {
-                processLiveBroadcastAnnouncements(trigger);
-            }
+            if (trigger) processLiveBroadcastAnnouncements(trigger);
         }
     });
 
