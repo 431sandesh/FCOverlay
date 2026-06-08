@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
 app.use(express.static(path.join(__dirname)));
 
 // ─── DATABASE ────────────────────────────────────────────────
@@ -25,14 +25,14 @@ async function initDB() {
             email VARCHAR(255) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
             full_name VARCHAR(255) NOT NULL,
-            username VARCHAR(100),
+            username VARCHAR(100) UNIQUE,
+            organization_name VARCHAR(255),
             initials VARCHAR(5),
             avatar_color VARCHAR(20) DEFAULT '#10b981',
+            avatar_data TEXT,
             is_verified BOOLEAN DEFAULT FALSE,
             verification_token VARCHAR(255),
             verification_expires TIMESTAMP,
-            reset_token VARCHAR(255),
-            reset_expires TIMESTAMP,
             created_at TIMESTAMP DEFAULT NOW()
         );
         CREATE TABLE IF NOT EXISTS user_data (
@@ -44,29 +44,44 @@ async function initDB() {
             UNIQUE(user_id, data_key)
         );
     `);
+
+    // Add new columns if upgrading from old schema
+    const cols = ['organization_name VARCHAR(255)', 'avatar_data TEXT', 'username VARCHAR(100)'];
+    for (const col of cols) {
+        const name = col.split(' ')[0];
+        try {
+            await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${col}`);
+        } catch(e) {}
+    }
+
     console.log('Database ready');
 }
 
 // ─── EMAIL ───────────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-});
-
 async function sendVerificationEmail(email, fullName, token) {
-    const link = `https://bhakundofx.up.railway.app/api/auth/verify/${token}`;
-    await transporter.sendMail({
-        from: `"BhakundoFX" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Verify your BhakundoFX account',
-        html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#0a0f0d;color:#fff;border-radius:12px;">
-            <h2 style="color:#10b981;">Welcome to BhakundoFX, ${fullName}!</h2>
-            <p style="color:#9ca3af;">Click the button below to verify your email and activate your account.</p>
-            <a href="${link}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#10b981;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">Verify Email</a>
-            <p style="color:#6b7280;font-size:12px;">Link expires in 24 hours. If you didn't sign up, ignore this email.</p>
-        </div>`
-    });
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        });
+        const link = `https://bhakundofx.up.railway.app/api/auth/verify/${token}`;
+        await transporter.sendMail({
+            from: `"BhakundoFX" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Verify your BhakundoFX account',
+            html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#0a0f0d;color:#fff;border-radius:12px;">
+                <h2 style="color:#10b981;">Welcome to BhakundoFX, ${fullName}!</h2>
+                <p style="color:#9ca3af;">Click the button below to verify your email and activate your account.</p>
+                <a href="${link}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#10b981;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">Verify Email</a>
+                <p style="color:#6b7280;font-size:12px;">Link expires in 24 hours.</p>
+            </div>`
+        });
+        return true;
+    } catch (e) {
+        console.error('Email send failed:', e.message);
+        return false;
+    }
 }
 
 // ─── AUTH MIDDLEWARE ─────────────────────────────────────────
@@ -87,32 +102,47 @@ function authMiddleware(req, res, next) {
 // Register
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { email, password, fullName } = req.body;
-        if (!email || !password || !fullName)
-            return res.status(400).json({ error: 'All fields are required' });
+        const { email, password, fullName, username, organizationName, avatarData } = req.body;
+
+        if (!email || !password || !fullName || !username)
+            return res.status(400).json({ error: 'Name, username, email and password are required' });
         if (password.length < 6)
             return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        if (!/^[a-zA-Z0-9_]+$/.test(username))
+            return res.status(400).json({ error: 'Username can only contain letters, numbers and underscores' });
 
-        const exists = await pool.query('SELECT id FROM users WHERE email=$1', [email.toLowerCase()]);
-        if (exists.rows.length > 0)
+        // Check email and username
+        const emailExists = await pool.query('SELECT id FROM users WHERE email=$1', [email.toLowerCase()]);
+        if (emailExists.rows.length > 0)
             return res.status(400).json({ error: 'Email already registered' });
+
+        const usernameExists = await pool.query('SELECT id FROM users WHERE LOWER(username)=$1', [username.toLowerCase()]);
+        if (usernameExists.rows.length > 0)
+            return res.status(400).json({ error: 'Username already taken' });
 
         const passwordHash = await bcrypt.hash(password, 12);
         const verificationToken = crypto.randomBytes(32).toString('hex');
         const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 
-        const result = await pool.query(
-            `INSERT INTO users (email, password_hash, full_name, initials, verification_token, verification_expires)
-             VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-            [email.toLowerCase(), passwordHash, fullName, initials, verificationToken, verificationExpires]
+        await pool.query(
+            `INSERT INTO users (email, password_hash, full_name, username, organization_name, initials, avatar_data, verification_token, verification_expires)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            [email.toLowerCase(), passwordHash, fullName, username, organizationName || null, initials, avatarData || null, verificationToken, verificationExpires]
         );
 
-        await sendVerificationEmail(email, fullName, verificationToken);
-        res.json({ success: true, message: 'Account created! Check your email to verify.' });
+        const emailSent = await sendVerificationEmail(email, fullName, verificationToken);
+
+        if (emailSent) {
+            res.json({ success: true, message: 'Account created! Check your email to verify your account.' });
+        } else {
+            // Account created but email failed — auto-verify for now so user isn't stuck
+            await pool.query('UPDATE users SET is_verified=TRUE WHERE email=$1', [email.toLowerCase()]);
+            res.json({ success: true, message: 'Account created! Email verification skipped — you can log in now.', autoVerified: true });
+        }
     } catch (e) {
         console.error('Register error:', e);
-        res.status(500).json({ error: 'Registration failed. Please try again.' });
+        res.status(500).json({ error: 'Registration failed: ' + e.message });
     }
 });
 
@@ -125,46 +155,53 @@ app.get('/api/auth/verify/:token', async (req, res) => {
             [req.params.token]
         );
         if (result.rows.length === 0)
-            return res.redirect('/login.html?error=invalid_or_expired_link');
+            return res.redirect('/login.html?error=invalid_link');
         res.redirect('/login.html?verified=true');
     } catch (e) {
         res.redirect('/login.html?error=verification_failed');
     }
 });
 
-// Login
+// Login (username or email)
 app.post('/api/auth/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password)
-            return res.status(400).json({ error: 'Email and password are required' });
+        const { login, password } = req.body;
+        if (!login || !password)
+            return res.status(400).json({ error: 'Please fill in all fields' });
 
-        const result = await pool.query('SELECT * FROM users WHERE email=$1', [email.toLowerCase()]);
+        // Find by email or username
+        const result = await pool.query(
+            'SELECT * FROM users WHERE email=$1 OR LOWER(username)=$2',
+            [login.toLowerCase(), login.toLowerCase()]
+        );
         if (result.rows.length === 0)
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.status(401).json({ error: 'Invalid username/email or password' });
 
         const user = result.rows[0];
         const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword)
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.status(401).json({ error: 'Invalid username/email or password' });
 
         if (!user.is_verified)
-            return res.status(403).json({ error: 'Please verify your email before logging in.', needsVerification: true });
+            return res.status(403).json({ error: 'Please verify your email before logging in.', needsVerification: true, email: user.email });
 
         const token = jwt.sign(
-            { id: user.id, email: user.email, fullName: user.full_name, initials: user.initials, avatarColor: user.avatar_color },
+            { id: user.id, email: user.email, fullName: user.full_name, username: user.username,
+              organizationName: user.organization_name, initials: user.initials,
+              avatarColor: user.avatar_color, avatarData: user.avatar_data },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 
         res.json({
-            success: true,
-            token,
-            user: { id: user.id, email: user.email, fullName: user.full_name, initials: user.initials, avatarColor: user.avatar_color }
+            success: true, token,
+            user: { id: user.id, email: user.email, fullName: user.full_name, username: user.username,
+                    organizationName: user.organization_name, initials: user.initials,
+                    avatarColor: user.avatar_color, avatarData: user.avatar_data }
         });
     } catch (e) {
         console.error('Login error:', e);
-        res.status(500).json({ error: 'Login failed. Please try again.' });
+        res.status(500).json({ error: 'Login failed: ' + e.message });
     }
 });
 
@@ -175,7 +212,6 @@ app.post('/api/auth/resend-verification', async (req, res) => {
         const result = await pool.query('SELECT * FROM users WHERE email=$1 AND is_verified=FALSE', [email.toLowerCase()]);
         if (result.rows.length === 0)
             return res.status(400).json({ error: 'Email not found or already verified' });
-
         const user = result.rows[0];
         const token = crypto.randomBytes(32).toString('hex');
         const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -189,11 +225,10 @@ app.post('/api/auth/resend-verification', async (req, res) => {
 
 // ─── USER ROUTES ─────────────────────────────────────────────
 
-// Get profile
 app.get('/api/user/profile', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, email, full_name, initials, avatar_color, created_at FROM users WHERE id=$1',
+            'SELECT id, email, full_name, username, organization_name, initials, avatar_color, avatar_data, created_at FROM users WHERE id=$1',
             [req.user.id]
         );
         res.json(result.rows[0]);
@@ -202,43 +237,50 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
     }
 });
 
-// Update profile
 app.put('/api/user/profile', authMiddleware, async (req, res) => {
     try {
-        const { fullName, avatarColor } = req.body;
+        const { fullName, organizationName, avatarColor, avatarData, username } = req.body;
+        if (username) {
+            const exists = await pool.query('SELECT id FROM users WHERE LOWER(username)=$1 AND id!=$2', [username.toLowerCase(), req.user.id]);
+            if (exists.rows.length > 0) return res.status(400).json({ error: 'Username already taken' });
+        }
         const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
         const result = await pool.query(
-            'UPDATE users SET full_name=$1, initials=$2, avatar_color=$3 WHERE id=$4 RETURNING id, email, full_name, initials, avatar_color',
-            [fullName, initials, avatarColor || '#10b981', req.user.id]
+            `UPDATE users SET full_name=$1, initials=$2, avatar_color=$3, avatar_data=$4, organization_name=$5, username=$6
+             WHERE id=$7 RETURNING id, email, full_name, username, organization_name, initials, avatar_color, avatar_data`,
+            [fullName, initials, avatarColor || '#10b981', avatarData || null, organizationName || null, username || null, req.user.id]
         );
-        res.json({ success: true, user: result.rows[0] });
+        const updated = result.rows[0];
+        const token = jwt.sign(
+            { id: updated.id, email: updated.email, fullName: updated.full_name, username: updated.username,
+              organizationName: updated.organization_name, initials: updated.initials,
+              avatarColor: updated.avatar_color, avatarData: updated.avatar_data },
+            process.env.JWT_SECRET, { expiresIn: '7d' }
+        );
+        res.json({ success: true, user: updated, token });
     } catch (e) {
         res.status(500).json({ error: 'Failed to update profile' });
     }
 });
 
-// ─── DATA ROUTES (replaces localStorage) ─────────────────────
+// ─── DATA ROUTES ─────────────────────────────────────────────
 
-// Get data by key
 app.get('/api/data/:key', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query(
             'SELECT data_value FROM user_data WHERE user_id=$1 AND data_key=$2',
             [req.user.id, req.params.key]
         );
-        if (result.rows.length === 0) return res.json({ data: null });
-        res.json({ data: result.rows[0].data_value });
+        res.json({ data: result.rows.length === 0 ? null : result.rows[0].data_value });
     } catch (e) {
         res.status(500).json({ error: 'Failed to get data' });
     }
 });
 
-// Save data by key
 app.post('/api/data/:key', authMiddleware, async (req, res) => {
     try {
         await pool.query(
-            `INSERT INTO user_data (user_id, data_key, data_value, updated_at)
-             VALUES ($1,$2,$3,NOW())
+            `INSERT INTO user_data (user_id, data_key, data_value, updated_at) VALUES ($1,$2,$3,NOW())
              ON CONFLICT (user_id, data_key) DO UPDATE SET data_value=$3, updated_at=NOW()`,
             [req.user.id, req.params.key, req.body.data]
         );
@@ -248,13 +290,9 @@ app.post('/api/data/:key', authMiddleware, async (req, res) => {
     }
 });
 
-// Get all user data at once (for loading on login)
 app.get('/api/data', authMiddleware, async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT data_key, data_value FROM user_data WHERE user_id=$1',
-            [req.user.id]
-        );
+        const result = await pool.query('SELECT data_key, data_value FROM user_data WHERE user_id=$1', [req.user.id]);
         const data = {};
         result.rows.forEach(row => { data[row.data_key] = row.data_value; });
         res.json(data);
@@ -275,6 +313,6 @@ app.get('/',          (req, res) => res.sendFile(path.join(__dirname, 'index.htm
 initDB().then(() => {
     app.listen(PORT, () => console.log(`BhakundoFX running on port ${PORT}`));
 }).catch(err => {
-    console.error('Failed to initialize database:', err);
+    console.error('DB init failed:', err);
     process.exit(1);
 });
