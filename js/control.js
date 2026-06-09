@@ -371,45 +371,148 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseClockTimer();
     });
 
-    // Add +1 minute
+    // +1 min = add injury/stoppage time = shift kickoffAt back 60s
     document.getElementById('btn-clock-adjust-plus').addEventListener('click', () => {
-        matchState.currentTime += 60;
-        lblLiveTimer.textContent = DB.formatMatchTime(matchState.currentTime);
+        if (matchState.kickoffAt) {
+            matchState.kickoffAt -= 60000; // pretend match started 1min earlier
+        } else {
+            matchState.currentTime += 60;
+        }
+        const elapsed = getElapsedSeconds();
+        matchState.currentTime = elapsed;
+        lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
         DB.saveMatchState(matchState);
     });
 
-    // Sub -1 minute
+    // -1 min = reduce time = shift kickoffAt forward 60s
     document.getElementById('btn-clock-adjust-minus').addEventListener('click', () => {
-        matchState.currentTime = Math.max(0, matchState.currentTime - 60);
-        lblLiveTimer.textContent = DB.formatMatchTime(matchState.currentTime);
+        if (matchState.kickoffAt) {
+            matchState.kickoffAt += 60000;
+        } else {
+            matchState.currentTime = Math.max(0, matchState.currentTime - 60);
+        }
+        const elapsed = Math.max(0, getElapsedSeconds());
+        matchState.currentTime = elapsed;
+        lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
         DB.saveMatchState(matchState);
     });
 
-    // Next half control
+    // ── HALF MANAGEMENT ─────────────────────────────────────────
+    function showFirstHalfButtons() {
+        document.getElementById('btn-next-half').style.display = 'inline-block';
+        document.getElementById('btn-end-match').style.display = 'none';
+        document.getElementById('btn-extra-time').style.display = 'none';
+        document.getElementById('btn-penalty-kicks').style.display = 'none';
+    }
+
+    function showSecondHalfButtons() {
+        document.getElementById('btn-next-half').style.display = 'none';
+        document.getElementById('btn-end-match').style.display = 'inline-block';
+        document.getElementById('btn-extra-time').style.display = 'inline-block';
+        document.getElementById('btn-penalty-kicks').style.display = 'inline-block';
+    }
+
+    // Next Half → go to 2nd half and show End/ExtraTime/Penalty buttons
     document.getElementById('btn-next-half').addEventListener('click', () => {
         pauseClockTimer();
         const halfSecs = matchState.duration * 60;
-        
-        if (lblClockHalf.textContent === '1ST HALF') {
-            lblClockHalf.textContent = '2ND HALF';
-            matchState.currentTime = halfSecs; // seed to second session start
-            lblLiveTimer.textContent = DB.formatMatchTime(matchState.currentTime);
-            logMatchTimelineEvent('Second Half Kick-off', 'info', { desc: 'Second Session Started' });
-        } else {
-            lblClockHalf.textContent = '1ST HALF';
-            matchState.currentTime = 0;
-            lblLiveTimer.textContent = DB.formatMatchTime(0);
-        }
-        
+        matchState.currentHalf = 2;
+        lblClockHalf.textContent = '2ND';
+        // Reset timer for 2nd half — new kickoff timestamp from now
+        matchState.kickoffAt = Date.now() - (halfSecs * 1000); // starts at half-time mark
+        matchState.totalPausedMs = 0;
+        matchState.pauseStartAt = Date.now();
+        matchState.timerRunning = false;
+        matchState.currentTime = halfSecs;
+        lblLiveTimer.textContent = DB.formatMatchTime(halfSecs);
+        showSecondHalfButtons();
+        logMatchTimelineEvent('2nd Half', 'info', { desc: 'Second Half Ready — Press Start Clock' });
         DB.saveMatchState(matchState);
     });
 
-    // Hard Match resets
+    // End Match
+    document.getElementById('btn-end-match').addEventListener('click', () => {
+        if (confirm('End the match? This will stop the clock and finalise the result.')) {
+            pauseClockTimer();
+            matchState.status = 'finished';
+            matchState.timerRunning = false;
+            DB.saveMatchState(matchState);
+            logMatchTimelineEvent('Full Time', 'info', { desc: `Final Score: ${matchState.scoreA} - ${matchState.scoreB}` });
+            if (window.apiFetch) {
+                window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: matchState }) }).catch(() => {});
+            }
+            alert('Match ended! Full time.');
+        }
+    });
+
+    // Extra Time — open modal
+    document.getElementById('btn-extra-time').addEventListener('click', () => {
+        document.getElementById('extra-time-modal').style.display = 'flex';
+        document.getElementById('et-minutes-input').value = 15;
+    });
+
+    // Confirm Extra Time kick-off
+    document.getElementById('btn-confirm-extra-time').addEventListener('click', () => {
+        const mins = parseInt(document.getElementById('et-minutes-input').value) || 15;
+        if (!confirm(`Start Extra Time — ${mins} minutes per half?`)) return;
+        document.getElementById('extra-time-modal').style.display = 'none';
+
+        matchState.currentHalf = 3; // ET 1st half
+        matchState.duration = mins;
+        matchState.kickoffAt = Date.now();
+        matchState.totalPausedMs = 0;
+        matchState.pauseStartAt = null;
+        matchState.timerRunning = true;
+        matchState.currentTime = 0;
+        lblClockHalf.textContent = 'ET1';
+        lblLiveTimer.textContent = '00:00';
+        // Show same controls as regular play
+        showFirstHalfButtons();
+        document.getElementById('btn-next-half').textContent = 'ET 2nd Half';
+        startMatchClockTimer();
+        logMatchTimelineEvent('Extra Time', 'info', { desc: `Extra Time Started — ${mins} mins/half` });
+        DB.saveMatchState(matchState);
+        if (window.apiFetch) {
+            window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: matchState }) }).catch(() => {});
+        }
+    });
+
+    // Penalty Kicks
+    document.getElementById('btn-penalty-kicks').addEventListener('click', () => {
+        if (!confirm('Start Penalty Shootout? This will stop the match clock.')) return;
+        pauseClockTimer();
+        matchState.currentHalf = 5; // penalties
+        matchState.status = 'penalties';
+        lblClockHalf.textContent = 'PEN';
+        showFirstHalfButtons();
+        document.getElementById('btn-next-half').style.display = 'none';
+        document.getElementById('btn-end-match').style.display = 'inline-block';
+        logMatchTimelineEvent('Penalty Shootout', 'info', { desc: 'Penalty Kicks Started' });
+        DB.saveMatchState(matchState);
+    });
+
+    // Reset match — clear state and go back to wizard without page reload
     document.getElementById('btn-reset-match-control').addEventListener('click', () => {
-        if (confirm("Reset current match stream? This will erase all score logs and clock progress!")) {
+        if (confirm('Reset match? This clears score, clock, and all events.')) {
             if (liveClockInterval) clearInterval(liveClockInterval);
             DB.resetMatchState();
-            location.reload();
+            // Clear server match state
+            if (window.apiFetch) {
+                window.apiFetch('/api/data/match_state', {
+                    method: 'POST',
+                    body: JSON.stringify({ data: null })
+                }).catch(() => {});
+            }
+            // Reset UI without page reload
+            matchState = DB.getMatchState();
+            liveDashboard.style.display = 'none';
+            wizardContainer.style.display = 'block';
+            showFirstHalfButtons();
+            document.getElementById('btn-next-half').textContent = 'Next Half';
+            lblLiveTimer.textContent = '00:00';
+            lblClockHalf.textContent = '1ST';
+            initWizard();
+            gotoStep(1);
         }
     });
 
@@ -858,6 +961,12 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 btnClockPlay.style.display = 'block';
                 btnClockPause.style.display = 'none';
+            }
+            // Restore correct half buttons
+            if (matchState.currentHalf >= 2) {
+                showSecondHalfButtons();
+            } else {
+                showFirstHalfButtons();
             }
         } else {
             gotoStep(1);
