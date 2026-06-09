@@ -388,9 +388,12 @@ app.post('/api/user/avatar', authMiddleware, upload.single('avatar'), async (req
 // ─── PUBLIC OVERLAY API (no auth — used by OBS browser source) ──
 app.get('/api/public/match/:userId', async (req, res) => {
     try {
+        // Try both key formats (bfx_match_state is the stored key)
         const result = await pool.query(
-            'SELECT data_value FROM user_data WHERE user_id=$1 AND data_key=$2',
-            [req.params.userId, 'match_state']
+            `SELECT data_value FROM user_data WHERE user_id=$1 
+             AND data_key IN ('bfx_match_state', 'match_state')
+             ORDER BY updated_at DESC LIMIT 1`,
+            [req.params.userId]
         );
         if (result.rows.length === 0) return res.json({ data: null });
         res.json({ data: result.rows[0].data_value });
