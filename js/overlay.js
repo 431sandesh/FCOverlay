@@ -15,33 +15,58 @@ document.addEventListener('DOMContentLoaded', () => {
         OVERLAY_TRIGGER: 'bfx_overlay_trigger'
     };
 
-    // ── SERVER POLLING (for OBS — no localStorage cross-browser) ─
+    // ── REAL-TIME SYNC ────────────────────────────────────────
+    // Two polling methods run together:
+    // 1. localStorage poll — works when control + overlay in same browser
+    // 2. Server poll — works in OBS (different browser, uses ?uid= param)
+
     let lastMatchStateStr = '';
     let lastTriggerStr = '';
 
-    async function pollServerForUpdates() {
-        if (!OVERLAY_UID) return; // same browser — use storage events instead
+    // Method 1: Poll localStorage directly every second
+    // Catches changes even when storage events don't fire (same window)
+    function pollLocalStorage() {
         try {
-            const res = await fetch(`/api/public/match/${OVERLAY_UID}`);
+            const state = DB.getMatchState();
+            const stateStr = JSON.stringify(state);
+            if (stateStr !== lastMatchStateStr) {
+                lastMatchStateStr = stateStr;
+                loadBroadcastStateGraphics();
+            }
+
+            // Check for overlay trigger events (goals, cards etc)
+            const trigger = DB.getLatestTrigger();
+            if (trigger) {
+                const trigStr = JSON.stringify(trigger);
+                if (trigStr !== lastTriggerStr) {
+                    lastTriggerStr = trigStr;
+                    processLiveBroadcastAnnouncements(trigger);
+                }
+            }
+        } catch(e) {}
+    }
+
+    // Method 2: Poll server when opened with ?uid= (OBS browser source)
+    async function pollServer() {
+        if (!OVERLAY_UID) return;
+        try {
+            const res = await fetch('/api/public/match/' + OVERLAY_UID);
             const json = await res.json();
             if (!json.data) return;
-
             const newStr = JSON.stringify(json.data);
             if (newStr !== lastMatchStateStr) {
                 lastMatchStateStr = newStr;
-                // Update localStorage so DB.getMatchState() works
                 localStorage.setItem(DB_KEYS.MATCH_STATE, newStr);
                 loadBroadcastStateGraphics();
             }
-        } catch(e) {
-            // Silent fail — overlay keeps showing last state
-        }
+        } catch(e) {}
     }
 
-    // Poll every 1.5 seconds when uid is in URL (OBS mode)
+    // Start both pollers
+    setInterval(pollLocalStorage, 1000);  // 1s for same-browser
     if (OVERLAY_UID) {
-        pollServerForUpdates(); // immediate first load
-        setInterval(pollServerForUpdates, 1500);
+        pollServer();
+        setInterval(pollServer, 1500);    // 1.5s for OBS
     }
 
     // Cache DOM Overlay Elements
