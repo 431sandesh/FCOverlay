@@ -371,26 +371,41 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseClockTimer();
     });
 
-    // +1 min = add injury/stoppage time = shift kickoffAt back 60s
+    // +1m = extend half duration by 1 minute (injury/stoppage time)
     document.getElementById('btn-clock-adjust-plus').addEventListener('click', () => {
-        if (matchState.kickoffAt) {
-            matchState.kickoffAt -= 60000; // pretend match started 1min earlier
-        } else {
-            matchState.currentTime += 60;
-        }
+        matchState.duration = (matchState.duration || 45) + 1;
+        lblClockHalf.textContent = (matchState.currentHalf === 2 ? '2ND' : '1ST') + ' +' +
+            (matchState.duration - (matchState.currentHalf === 2 ? matchState.duration : matchState.duration) ) + '';
+        // Show how many extra minutes added above base
+        const base = matchState.baseHalfDuration || matchState.duration - 1;
+        if (!matchState.baseHalfDuration) matchState.baseHalfDuration = base;
+        const extra = matchState.duration - matchState.baseHalfDuration;
+        lblClockHalf.textContent = (matchState.currentHalf >= 2 ? '2ND' : '1ST') + (extra > 0 ? ' +' + extra + "'" : '');
+        DB.saveMatchState(matchState);
+    });
+
+    // -1m = reduce half duration
+    document.getElementById('btn-clock-adjust-minus').addEventListener('click', () => {
+        const base = matchState.baseHalfDuration || matchState.duration;
+        matchState.duration = Math.max(base, (matchState.duration || 45) - 1);
+        const extra = matchState.duration - (matchState.baseHalfDuration || matchState.duration);
+        lblClockHalf.textContent = (matchState.currentHalf >= 2 ? '2ND' : '1ST') + (extra > 0 ? ' +' + extra + "'" : '');
+        DB.saveMatchState(matchState);
+    });
+
+    // Overlay time offset buttons — shift what displays on screen ±1 min
+    document.getElementById('btn-overlay-time-plus').addEventListener('click', () => {
+        if (matchState.kickoffAt) matchState.kickoffAt -= 60000;
+        else matchState.currentTime += 60;
         const elapsed = getElapsedSeconds();
         matchState.currentTime = elapsed;
         lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
         DB.saveMatchState(matchState);
     });
 
-    // -1 min = reduce time = shift kickoffAt forward 60s
-    document.getElementById('btn-clock-adjust-minus').addEventListener('click', () => {
-        if (matchState.kickoffAt) {
-            matchState.kickoffAt += 60000;
-        } else {
-            matchState.currentTime = Math.max(0, matchState.currentTime - 60);
-        }
+    document.getElementById('btn-overlay-time-minus').addEventListener('click', () => {
+        if (matchState.kickoffAt) matchState.kickoffAt += 60000;
+        else matchState.currentTime = Math.max(0, matchState.currentTime - 60);
         const elapsed = Math.max(0, getElapsedSeconds());
         matchState.currentTime = elapsed;
         lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
@@ -430,20 +445,104 @@ document.addEventListener('DOMContentLoaded', () => {
         DB.saveMatchState(matchState);
     });
 
-    // End Match
+    // End Match → show post-match screen
     document.getElementById('btn-end-match').addEventListener('click', () => {
-        if (confirm('End the match? This will stop the clock and finalise the result.')) {
-            pauseClockTimer();
-            matchState.status = 'finished';
-            matchState.timerRunning = false;
-            DB.saveMatchState(matchState);
-            logMatchTimelineEvent('Full Time', 'info', { desc: `Final Score: ${matchState.scoreA} - ${matchState.scoreB}` });
-            if (window.apiFetch) {
-                window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: matchState }) }).catch(() => {});
-            }
-            alert('Match ended! Full time.');
+        if (!confirm('End the match? This will stop the clock and finalise the result.')) return;
+
+        pauseClockTimer();
+        if (liveClockInterval) clearInterval(liveClockInterval);
+        matchState.status = 'finished';
+        matchState.timerRunning = false;
+        DB.saveMatchState(matchState);
+        logMatchTimelineEvent('Full Time', 'info', { desc: `Final Score: ${matchState.scoreA} - ${matchState.scoreB}` });
+        if (window.apiFetch) {
+            window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: matchState }) }).catch(() => {});
         }
+
+        // Switch to post-match screen
+        liveDashboard.style.display = 'none';
+        const pmContainer = document.getElementById('post-match-container');
+        pmContainer.style.display = 'block';
+
+        // Populate summary
+        document.getElementById('pm-final-score').textContent =
+            matchState.scoreA + ' — ' + matchState.scoreB;
+        document.getElementById('pm-team-names').textContent =
+            (matchState.teamA?.name || 'Home') + ' vs ' + (matchState.teamB?.name || 'Away');
+
+        // Build match summary text
+        const s = matchState.stats || {};
+        document.getElementById('pm-summary-content').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px 12px;align-items:center;">
+                <span style="text-align:right;color:#fff;">${matchState.scoreA}</span><span style="color:#6b7280;font-size:0.75rem;">Goals</span><span style="color:#fff;">${matchState.scoreB}</span>
+                <span style="text-align:right;">${s.shotsA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Shots</span><span>${s.shotsB||0}</span>
+                <span style="text-align:right;">${s.sotA||0}</span><span style="color:#6b7280;font-size:0.75rem;">On Target</span><span>${s.sotB||0}</span>
+                <span style="text-align:right;">${s.cornersA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Corners</span><span>${s.cornersB||0}</span>
+                <span style="text-align:right;">${s.ycA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Yellow Cards</span><span>${s.ycB||0}</span>
+                <span style="text-align:right;">${s.foulsA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Fouls</span><span>${s.foulsB||0}</span>
+            </div>`;
     });
+
+    // Post-match broadcast triggers
+    window.postMatchTrigger = function(type) {
+        DB.triggerOverlayAnimation('config_update', { activeGraphic: type });
+        matchState.activeGraphic = type;
+        DB.saveMatchState(matchState);
+    };
+
+    // Register match stats to team records & start new match
+    document.getElementById('btn-pm-register').addEventListener('click', () => {
+        if (!confirm('Register this match result to team and player records?')) return;
+
+        const db = DB.getDb();
+        const sA = matchState.scoreA || 0;
+        const sB = matchState.scoreB || 0;
+        const stats = matchState.stats || {};
+
+        // Update team records
+        [matchState.teamA, matchState.teamB].forEach((team, idx) => {
+            if (!team) return;
+            const dbTeam = db.teams.find(t => t.id === team.id);
+            if (!dbTeam) return;
+            if (!dbTeam.record) dbTeam.record = { played:0, won:0, drew:0, lost:0, gf:0, ga:0 };
+            const goalsFor  = idx === 0 ? sA : sB;
+            const goalsAgainst = idx === 0 ? sB : sA;
+            dbTeam.record.played++;
+            dbTeam.record.gf += goalsFor;
+            dbTeam.record.ga += goalsAgainst;
+            if (goalsFor > goalsAgainst) dbTeam.record.won++;
+            else if (goalsFor === goalsAgainst) dbTeam.record.drew++;
+            else dbTeam.record.lost++;
+            // Add shots to team record
+            dbTeam.record.shots = (dbTeam.record.shots || 0) + (idx === 0 ? (stats.shotsA||0) : (stats.shotsB||0));
+            dbTeam.record.shotsOnTarget = (dbTeam.record.shotsOnTarget || 0) + (idx === 0 ? (stats.sotA||0) : (stats.sotB||0));
+        });
+
+        DB.saveDb(db);
+        alert('Match stats registered! Starting new match.');
+        resetAndStartNew();
+    });
+
+    // Discard and start new
+    document.getElementById('btn-pm-skip').addEventListener('click', () => {
+        if (confirm('Discard match data and start fresh?')) resetAndStartNew();
+    });
+
+    function resetAndStartNew() {
+        document.getElementById('post-match-container').style.display = 'none';
+        DB.resetMatchState();
+        if (window.apiFetch) {
+            window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: null }) }).catch(() => {});
+        }
+        matchState = DB.getMatchState();
+        showFirstHalfButtons();
+        document.getElementById('btn-next-half').textContent = 'Next Half';
+        lblLiveTimer.textContent = '00:00';
+        lblClockHalf.textContent = '1ST';
+        wizardContainer.style.display = 'block';
+        initWizard();
+        gotoStep(1);
+    }
 
     // Extra Time — open modal
     document.getElementById('btn-extra-time').addEventListener('click', () => {
