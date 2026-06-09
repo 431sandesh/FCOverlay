@@ -39,7 +39,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/overlay" target="_blank" style="border: 1px dashed rgba(16, 185, 129, 0.4);" id="obs-nav-link">
+                        <a href="/overlay" target="_blank" style="border: 1px dashed rgba(16, 185, 129, 0.4);">
                             <svg viewBox="0 0 24 24"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke="currentColor" stroke-width="2"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             Launch OBS Overlay
                         </a>
@@ -232,16 +232,21 @@
                         <span class="clock-half-badge" id="lbl-clock-half">1ST HALF</span>
                         <div class="clock-readout" id="lbl-live-timer">00:00</div>
                         
-                        <div class="clock-controls">
-                            <button id="btn-clock-play" class="btn-primary" style="padding: 10px 20px;">Start Clock</button>
-                            <button id="btn-clock-pause" class="btn-secondary" style="display: none;">Pause</button>
-                            <button id="btn-next-half" class="btn-secondary">Next Half</button>
+                        <div class="clock-controls" id="clock-btn-group">
+                            <button id="btn-clock-play" class="btn-primary" style="padding:10px 20px;" type="button">Start Clock</button>
+                            <button id="btn-clock-pause" class="btn-secondary" style="display:none;" type="button">Pause</button>
+                            <!-- 1st half -->
+                            <button id="btn-next-half" class="btn-secondary" type="button">Next Half</button>
+                            <!-- 2nd half options (hidden until 2nd half) -->
+                            <button id="btn-end-match" type="button" style="display:none;background:#ef4444;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">End Match</button>
+                            <button id="btn-extra-time" type="button" style="display:none;background:#f59e0b;color:#000;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">Extra Time</button>
+                            <button id="btn-penalty-kicks" type="button" style="display:none;background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;">Penalty Kicks</button>
                         </div>
                         
                         <div class="clock-adjusters">
-                            <button id="btn-clock-adjust-plus">+1m</button>
-                            <button id="btn-clock-adjust-minus">-1m</button>
-                            <button id="btn-reset-match-control" class="btn-danger" style="padding:4px 8px; font-size:0.75rem;">Reset</button>
+                            <button id="btn-clock-adjust-plus" type="button">+1m</button>
+                            <button id="btn-clock-adjust-minus" type="button">-1m</button>
+                            <button id="btn-reset-match-control" type="button" style="padding:4px 8px;font-size:0.75rem;background:#374151;color:#fff;border:none;border-radius:6px;cursor:pointer;">Reset</button>
                         </div>
                     </div>
 
@@ -421,17 +426,24 @@
     <script src="js/profile.js"></script>
     <script src="js/db.js"></script>
     <script src="js/control.js"></script>
-    <script>
-    // Show personalized OBS URL with user ID
-    document.addEventListener('DOMContentLoaded', () => {
-        if (window.BFX_USER) {
-            const uid = window.BFX_USER.id;
-            const obsUrl = window.location.origin + '/overlay.html?uid=' + uid;
-            // Update nav link to include uid
-            const navLink = document.getElementById('obs-nav-link');
-            if (navLink) navLink.href = obsUrl;
-        }
-    });
-    </script>
+
+    <!-- Extra Time Modal -->
+    <div id="extra-time-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#0d1f17;border:1px solid rgba(16,185,129,0.3);border-radius:16px;padding:28px;width:100%;max-width:380px;margin:20px;">
+            <h3 style="color:#f59e0b;margin:0 0 6px;font-size:1.1rem;">⏱ Extra Time</h3>
+            <p style="color:#9ca3af;font-size:0.85rem;margin:0 0 20px;">How many minutes per extra time half?</p>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Minutes per half</label>
+                <input type="number" id="et-minutes-input" value="15" min="1" max="30"
+                    style="width:100%;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:1.2rem;text-align:center;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button onclick="document.getElementById('extra-time-modal').style.display='none'"
+                    style="flex:1;padding:11px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;cursor:pointer;font-weight:600;">Cancel</button>
+                <button id="btn-confirm-extra-time"
+                    style="flex:2;padding:11px;background:#f59e0b;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.95rem;">Kick Off Extra Time</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
