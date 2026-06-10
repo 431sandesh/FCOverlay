@@ -388,6 +388,62 @@
                 </section>
 
             </div>
+        <!-- POST-MATCH SCREEN — same level as wizard & live dashboard -->
+        <div id="post-match-container" style="display:none; width:100%; padding:24px; box-sizing:border-box;">
+            <div style="max-width:860px; margin:0 auto;">
+                <div style="text-align:center; margin-bottom:28px;">
+                    <h2 style="color:#fff; font-size:1.8rem; margin:0 0 6px;">Full Time</h2>
+                    <div id="pm-final-score" style="font-size:3rem; font-weight:900; color:#10b981; margin:8px 0;">0 — 0</div>
+                    <div id="pm-team-names" style="color:#9ca3af; font-size:1rem;"></div>
+                </div>
+
+                <!-- Broadcast triggers -->
+                <div class="glass-panel" style="padding:20px; margin-bottom:16px;">
+                    <h4 style="color:#fff;margin:0 0 14px;font-size:0.85rem;text-transform:uppercase;letter-spacing:1px;">Broadcast Triggers</h4>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+                        <button onclick="postMatchTrigger('scoreboard')" type="button"
+                            style="padding:12px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#10b981;font-weight:600;cursor:pointer;font-size:0.85rem;">
+                            📊 Final Scoreboard
+                        </button>
+                        <button onclick="postMatchTrigger('stats')" type="button"
+                            style="padding:12px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:8px;color:#60a5fa;font-weight:600;cursor:pointer;font-size:0.85rem;">
+                            📈 Match Stats
+                        </button>
+                        <button onclick="postMatchTrigger('lineups')" type="button"
+                            style="padding:12px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-weight:600;cursor:pointer;font-size:0.85rem;">
+                            👥 Team Lineups
+                        </button>
+                        <button onclick="postMatchTrigger('vs')" type="button"
+                            style="padding:12px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:8px;color:#fbbf24;font-weight:600;cursor:pointer;font-size:0.85rem;">
+                            🏟️ Next Match Info
+                        </button>
+                        <button onclick="postMatchTrigger('none')" type="button"
+                            style="padding:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-weight:600;cursor:pointer;font-size:0.85rem;">
+                            ✕ Clear All Overlays
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Match summary -->
+                <div class="glass-panel" style="padding:20px; margin-bottom:16px;">
+                    <h4 style="color:#fff;margin:0 0 14px;font-size:0.85rem;text-transform:uppercase;letter-spacing:1px;">Match Summary</h4>
+                    <div id="pm-summary-content" style="color:#9ca3af;font-size:0.9rem;line-height:2;"></div>
+                </div>
+
+                <!-- Action buttons -->
+                <div style="display:flex;gap:12px;">
+                    <button id="btn-pm-register" type="button"
+                        style="flex:1;padding:14px;background:#10b981;color:#000;font-weight:700;border:none;border-radius:10px;font-size:0.9rem;cursor:pointer;">
+                        ✅ Register Stats & Start New Match
+                    </button>
+                    <button id="btn-pm-skip" type="button"
+                        style="flex:1;padding:14px;background:rgba(255,255,255,0.08);color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.15);border-radius:10px;font-size:0.9rem;cursor:pointer;">
+                        ✕ Discard & Start New Match
+                    </button>
+                </div>
+            </div>
+        </div>
+
         </main>
     </div>
 
@@ -436,59 +492,6 @@
 
 
 
-    <!-- POST-MATCH SCREEN -->
-    <div id="post-match-container" style="display:none; padding:24px; max-width:900px; margin:0 auto;">
-        <div style="text-align:center; margin-bottom:28px;">
-            <h2 style="color:#fff; font-size:1.8rem; margin:0 0 6px;">Full Time</h2>
-            <div id="pm-final-score" style="font-size:2.5rem; font-weight:900; color:#10b981; margin:8px 0;">0 — 0</div>
-            <div id="pm-team-names" style="color:#9ca3af; font-size:1rem;"></div>
-        </div>
-
-        <!-- Post-match overlay triggers -->
-        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;margin-bottom:16px;">
-            <h4 style="color:#fff;margin:0 0 14px;font-size:0.9rem;text-transform:uppercase;letter-spacing:1px;">Broadcast Triggers</h4>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
-                <button onclick="postMatchTrigger('scoreboard')" type="button"
-                    style="padding:12px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#10b981;font-weight:600;cursor:pointer;font-size:0.85rem;">
-                    📊 Final Scoreboard
-                </button>
-                <button onclick="postMatchTrigger('stats')" type="button"
-                    style="padding:12px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:8px;color:#60a5fa;font-weight:600;cursor:pointer;font-size:0.85rem;">
-                    📈 Match Stats
-                </button>
-                <button onclick="postMatchTrigger('lineups')" type="button"
-                    style="padding:12px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-weight:600;cursor:pointer;font-size:0.85rem;">
-                    👥 Team Lineups
-                </button>
-                <button onclick="postMatchTrigger('vs')" type="button"
-                    style="padding:12px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:8px;color:#fbbf24;font-weight:600;cursor:pointer;font-size:0.85rem;">
-                    🏟️ Next Match Info
-                </button>
-                <button onclick="postMatchTrigger('none')" type="button"
-                    style="padding:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-weight:600;cursor:pointer;font-size:0.85rem;">
-                    ✕ Clear All Overlays
-                </button>
-            </div>
-        </div>
-
-        <!-- Match summary -->
-        <div id="pm-match-summary" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;margin-bottom:16px;">
-            <h4 style="color:#fff;margin:0 0 12px;font-size:0.9rem;text-transform:uppercase;letter-spacing:1px;">Match Summary</h4>
-            <div id="pm-summary-content" style="color:#9ca3af;font-size:0.85rem;line-height:1.8;"></div>
-        </div>
-
-        <!-- Close & register -->
-        <div style="display:flex;gap:12px;margin-top:8px;">
-            <button id="btn-pm-register" type="button"
-                style="flex:1;padding:14px;background:#10b981;color:#000;font-weight:700;border:none;border-radius:10px;font-size:0.95rem;cursor:pointer;">
-                ✅ Register Match Stats & Start New Match
-            </button>
-            <button id="btn-pm-skip" type="button"
-                style="flex:1;padding:14px;background:rgba(255,255,255,0.08);color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.15);border-radius:10px;font-size:0.95rem;cursor:pointer;">
-                ✕ Discard & Start New Match
-            </button>
-        </div>
-    </div>
     <!-- Extra Time Modal -->
     <div id="extra-time-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;">
         <div style="background:#0d1f17;border:1px solid rgba(16,185,129,0.3);border-radius:16px;padding:28px;width:100%;max-width:380px;margin:20px;">
