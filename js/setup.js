@@ -243,106 +243,66 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // ── COMPACT PLAYER CARD LIST ──────────────────────────
         players.forEach(p => {
-            const tr = document.createElement('tr');
-            
-            // Check if player photo exists, else generate SVG avatar
             const photoUrl = DB.getPlayerAvatar(p, team);
+            const s = p.stats || {};
+            const posColors = { GK:'#f59e0b', DF:'#3b82f6', MF:'#10b981', FW:'#ef4444' };
+            const posColor = posColors[p.position] || '#6b7280';
 
-            tr.innerHTML = `
-                <td>
-                    <input type="number" class="quick-input cell-number" data-pid="${p.id}" value="${p.number}" min="1" max="99" style="font-family: var(--font-display); font-weight:700;">
-                </td>
-                <td>
-                    <div class="player-profile-cell">
-                        <div class="player-photo-mini">
-                            <img src="${photoUrl}" />
-                        </div>
-                        <input type="text" class="cell-name" data-pid="${p.id}" value="${p.name}" style="background:transparent; border:none; padding:4px; font-weight:600; width: 100%;" />
-                    </div>
-                </td>
-                <td>
-                    <select class="cell-position" data-pid="${p.id}" style="padding:4px; font-size:0.8rem; font-weight:bold; width: 70px;">
-                        <option value="GK" ${p.position === 'GK' ? 'selected' : ''}>GK</option>
-                        <option value="DF" ${p.position === 'DF' ? 'selected' : ''}>DF</option>
-                        <option value="MF" ${p.position === 'MF' ? 'selected' : ''}>MF</option>
-                        <option value="FW" ${p.position === 'FW' ? 'selected' : ''}>FW</option>
-                    </select>
-                </td>
-                <!-- Quick spreadsheets inline stat editors -->
-                <td><input type="number" class="quick-input cell-stat" data-pid="${p.id}" data-stat="goals" value="${p.stats.goals || 0}" min="0"></td>
-                <td><input type="number" class="quick-input cell-stat" data-pid="${p.id}" data-stat="shots" value="${p.stats.shots || 0}" min="0"></td>
-                <td><input type="number" class="quick-input cell-stat" data-pid="${p.id}" data-stat="shotsOnTarget" value="${p.stats.shotsOnTarget || 0}" min="0"></td>
-                <td><input type="number" class="quick-input cell-stat" data-pid="${p.id}" data-stat="fouls" value="${p.stats.fouls || 0}" min="0"></td>
-                <td><input type="number" class="quick-input cell-stat" data-pid="${p.id}" data-stat="yellowCards" value="${p.stats.yellowCards || 0}" min="0" max="2"></td>
-                <td><input type="number" class="quick-input cell-stat" data-pid="${p.id}" data-stat="redCards" value="${p.stats.redCards || 0}" min="0" max="1"></td>
-                <td><input type="number" class="quick-input cell-stat" data-pid="${p.id}" data-stat="offsides" value="${p.stats.offsides || 0}" min="0"></td>
-                <td><input type="number" class="quick-input cell-stat" data-pid="${p.id}" data-stat="injuries" value="${p.stats.injuries || 0}" min="0" max="1"></td>
-                <td style="text-align:center;">
-                    <button class="btn-danger btn-delete-player" data-pid="${p.id}" style="padding: 4px 8px; border-radius:4px;">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            const card = document.createElement('div');
+            card.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;transition:background 0.2s;';
+            card.innerHTML = `
+                <!-- Avatar -->
+                <div style="width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid ${posColor}33;">
+                    <img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;">
+                </div>
+                <!-- Shirt # -->
+                <div style="font-size:1.1rem;font-weight:900;color:${posColor};min-width:28px;text-align:center;">${p.number}</div>
+                <!-- Name + pos -->
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;color:#fff;font-size:0.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
+                    <span style="font-size:0.7rem;font-weight:700;color:${posColor};background:${posColor}22;padding:2px 7px;border-radius:4px;">${p.position}</span>
+                </div>
+                <!-- Mini stats -->
+                <div style="display:flex;gap:12px;font-size:0.75rem;color:#6b7280;flex-shrink:0;">
+                    <span title="Goals">⚽ ${s.goals||0}</span>
+                    <span title="Shots">🎯 ${s.shots||0}</span>
+                    <span title="Yellow Cards" style="color:#fbbf24;">🟨 ${s.yellowCards||0}</span>
+                    <span title="Red Cards" style="color:#ef4444;">🟥 ${s.redCards||0}</span>
+                </div>
+                <!-- Edit + Delete -->
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button class="btn-edit-player" data-pid="${p.id}" type="button"
+                        style="padding:6px 12px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:6px;color:#10b981;font-size:0.8rem;font-weight:600;cursor:pointer;">
+                        ✏️ Edit
                     </button>
-                </td>
-            `;
+                    <button class="btn-delete-player" data-pid="${p.id}" type="button"
+                        style="padding:6px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#ef4444;font-size:0.8rem;cursor:pointer;">
+                        🗑
+                    </button>
+                </div>`;
 
-            tbody.appendChild(tr);
+            tbody.appendChild(card);
         });
 
-        // -------------------------------------------------------------
-        // INSTANT SPREADSHEET CELL INPUT AUTO-SAVE LISTENERS
-        // -------------------------------------------------------------
-        
-        // Name changes
-        tbody.querySelectorAll('.cell-name').forEach(inp => {
-            inp.addEventListener('change', (e) => {
-                const pid = e.target.dataset.pid;
-                DB.updatePlayer(pid, { name: e.target.value });
-            });
-        });
-
-        // Number changes
-        tbody.querySelectorAll('.cell-number').forEach(inp => {
-            inp.addEventListener('change', (e) => {
-                const pid = e.target.dataset.pid;
-                DB.updatePlayer(pid, { number: parseInt(e.target.value) || 0 });
-            });
-        });
-
-        // Position changes
-        tbody.querySelectorAll('.cell-position').forEach(sel => {
-            sel.addEventListener('change', (e) => {
-                const pid = e.target.dataset.pid;
-                DB.updatePlayer(pid, { position: e.target.value });
-                showTeamEditor(teamId); // Reload to update badges colors
-            });
-        });
-
-        // Stats cell adjustments
-        tbody.querySelectorAll('.cell-stat').forEach(inp => {
-            inp.addEventListener('change', (e) => {
-                const pid = e.target.dataset.pid;
-                const statKey = e.target.dataset.stat;
-                const val = parseInt(e.target.value) || 0;
-                
-                // Read current stats, modify value, and update player
-                const player = DB.getPlayers().find(p => p.id === pid);
-                if (player) {
-                    const stats = { ...(player.stats || {}) };
-                    stats[statKey] = val;
-                    DB.updatePlayer(pid, { stats });
-                }
-            });
-        });
-
-        // Delete player action
+        // Delete
         tbody.querySelectorAll('.btn-delete-player').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pid = e.currentTarget.dataset.pid;
                 const player = DB.getPlayers().find(p => p.id === pid);
-                if (player && confirm(`Are you sure you want to remove ${player.name} from the roster?`)) {
+                if (player && confirm(`Remove ${player.name} from the roster?`)) {
                     DB.deletePlayer(pid);
                     showTeamEditor(teamId);
                 }
+            });
+        });
+
+        // Edit — open modal
+        tbody.querySelectorAll('.btn-edit-player').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const pid = e.currentTarget.dataset.pid;
+                openEditPlayerModal(pid, teamId);
             });
         });
     };
@@ -640,4 +600,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial Tree render
     renderNavigatorTree();
+
+    // ── EDIT PLAYER MODAL ─────────────────────────────────────
+    let editPlayerTeamId = null;
+    let editPlayerPhotoFile = null;
+
+    function openEditPlayerModal(pid, teamId) {
+        const player = DB.getPlayers().find(p => p.id === pid);
+        if (!player) return;
+        editPlayerTeamId = teamId;
+        editPlayerPhotoFile = null;
+
+        document.getElementById('ep-player-id').value = pid;
+        document.getElementById('ep-name').value = player.name || '';
+        document.getElementById('ep-number').value = player.number || '';
+        document.getElementById('ep-position').value = player.position || 'FW';
+        const s = player.stats || {};
+        document.getElementById('ep-goals').value = s.goals || 0;
+        document.getElementById('ep-shots').value = s.shots || 0;
+        document.getElementById('ep-sot').value = s.shotsOnTarget || 0;
+        document.getElementById('ep-fouls').value = s.fouls || 0;
+        document.getElementById('ep-yellow').value = s.yellowCards || 0;
+        document.getElementById('ep-red').value = s.redCards || 0;
+        document.getElementById('ep-offsides').value = s.offsides || 0;
+        document.getElementById('ep-injuries').value = s.injuries || 0;
+
+        // Show photo preview
+        const preview = document.getElementById('ep-photo-preview');
+        const team = DB.getDb().teams.find(t => t.id === teamId);
+        const photoUrl = DB.getPlayerAvatar(player, team);
+        preview.innerHTML = `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+
+        document.getElementById('ep-msg').style.display = 'none';
+        document.getElementById('edit-player-modal').style.display = 'flex';
+    }
+
+    // Photo change in edit modal
+    document.getElementById('ep-photo-input').addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+        editPlayerPhotoFile = file;
+        compressImage(file, 300, 0.8, function(compressed) {
+            const preview = document.getElementById('ep-photo-preview');
+            preview.innerHTML = `<img src="${compressed}" style="width:100%;height:100%;object-fit:cover;">`;
+        });
+    });
+
+    // Save edited player
+    document.getElementById('ep-save-btn').addEventListener('click', async () => {
+        const pid = document.getElementById('ep-player-id').value;
+        const btn = document.getElementById('ep-save-btn');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        let photoData = null;
+        if (editPlayerPhotoFile) {
+            // Try Cloudinary upload first
+            const cloudUrl = await uploadPhoto(editPlayerPhotoFile, 'player', pid);
+            if (cloudUrl) {
+                photoData = cloudUrl;
+            } else {
+                // Fallback to base64
+                photoData = await new Promise(resolve => {
+                    compressImage(editPlayerPhotoFile, 300, 0.8, resolve);
+                });
+            }
+        }
+
+        const updates = {
+            name: document.getElementById('ep-name').value.trim(),
+            number: parseInt(document.getElementById('ep-number').value) || 0,
+            position: document.getElementById('ep-position').value,
+            stats: {
+                goals:         parseInt(document.getElementById('ep-goals').value) || 0,
+                shots:         parseInt(document.getElementById('ep-shots').value) || 0,
+                shotsOnTarget: parseInt(document.getElementById('ep-sot').value) || 0,
+                fouls:         parseInt(document.getElementById('ep-fouls').value) || 0,
+                yellowCards:   parseInt(document.getElementById('ep-yellow').value) || 0,
+                redCards:      parseInt(document.getElementById('ep-red').value) || 0,
+                offsides:      parseInt(document.getElementById('ep-offsides').value) || 0,
+                injuries:      parseInt(document.getElementById('ep-injuries').value) || 0,
+            }
+        };
+        if (photoData) updates.photo = photoData;
+
+        DB.updatePlayer(pid, updates);
+        document.getElementById('edit-player-modal').style.display = 'none';
+        showTeamEditor(editPlayerTeamId);
+
+        btn.disabled = false;
+        btn.textContent = 'Save Player';
+    });
+
+    // Close on backdrop click
+    document.getElementById('edit-player-modal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
 });
