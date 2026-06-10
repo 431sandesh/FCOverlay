@@ -460,9 +460,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Switch to post-match screen
+        wizardContainer.style.display = 'none';
         liveDashboard.style.display = 'none';
         const pmContainer = document.getElementById('post-match-container');
         pmContainer.style.display = 'block';
+        // Scroll to top of content
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
         // Populate summary
         document.getElementById('pm-final-score').textContent =
@@ -530,6 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetAndStartNew() {
         document.getElementById('post-match-container').style.display = 'none';
+        wizardContainer.style.display = 'block';
         DB.resetMatchState();
         if (window.apiFetch) {
             window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: null }) }).catch(() => {});
