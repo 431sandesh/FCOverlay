@@ -165,28 +165,8 @@
                             </button>
                         </div>
 
-                        <div class="roster-table-wrapper">
-                            <table class="roster-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 60px;">Shirt</th>
-                                        <th>Player Name</th>
-                                        <th style="width: 80px;">Pos</th>
-                                        <th style="width: 50px;">GL</th>
-                                        <th style="width: 50px;">SH</th>
-                                        <th style="width: 50px;">SOT</th>
-                                        <th style="width: 50px;">FL</th>
-                                        <th style="width: 50px;">YC</th>
-                                        <th style="width: 50px;">RC</th>
-                                        <th style="width: 50px;">OF</th>
-                                        <th style="width: 50px;">INJ</th>
-                                        <th style="width: 60px; text-align: center;">Delete</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="team-roster-tbody">
-                                    <!-- Populated dynamically with inline stats editors -->
-                                </tbody>
-                            </table>
+                        <div id="team-roster-tbody" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                            <!-- Player cards rendered dynamically -->
                         </div>
                     </div>
 
@@ -405,5 +385,79 @@
     <script src="js/profile.js"></script>
     <script src="js/db.js"></script>
     <script src="js/setup.js"></script>
+
+    <!-- Edit Player Modal -->
+    <div id="edit-player-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;">
+        <div style="background:#0d1f17;border:1px solid rgba(16,185,129,0.2);border-radius:16px;padding:28px;width:100%;max-width:480px;margin:20px auto;position:relative;">
+            <button onclick="document.getElementById('edit-player-modal').style.display='none'"
+                style="position:absolute;top:14px;right:16px;background:none;border:none;color:#9ca3af;font-size:1.2rem;cursor:pointer;">✕</button>
+            <h3 style="color:#fff;margin:0 0 20px;font-size:1.1rem;">Edit Player</h3>
+
+            <input type="hidden" id="ep-player-id">
+
+            <!-- Photo upload -->
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:14px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.1);border-radius:10px;">
+                <div id="ep-photo-preview" style="width:64px;height:64px;border-radius:50%;overflow:hidden;background:#10b981;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem;color:#000;flex-shrink:0;"></div>
+                <div>
+                    <p style="font-size:0.8rem;color:#9ca3af;margin:0 0 8px;">Player Photo</p>
+                    <button onclick="document.getElementById('ep-photo-input').click()" type="button"
+                        style="padding:7px 14px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:6px;color:#10b981;font-size:0.8rem;font-weight:600;cursor:pointer;">
+                        Change Photo
+                    </button>
+                    <input type="file" id="ep-photo-input" accept="image/*" style="display:none;">
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div>
+                    <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Full Name *</label>
+                    <input id="ep-name" type="text" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Shirt Number</label>
+                    <input id="ep-number" type="number" min="1" max="99" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.9rem;box-sizing:border-box;">
+                </div>
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Position</label>
+                <select id="ep-position" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.9rem;">
+                    <option value="GK">Goalkeeper (GK)</option>
+                    <option value="DF">Defender (DF)</option>
+                    <option value="MF">Midfielder (MF)</option>
+                    <option value="FW">Forward (FW)</option>
+                </select>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;margin-bottom:18px;">
+                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:12px;">Career Stats</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                    <div><label style="font-size:0.7rem;color:#6b7280;display:block;margin-bottom:4px;">Goals</label>
+                    <input id="ep-goals" type="number" min="0" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:0.9rem;box-sizing:border-box;text-align:center;"></div>
+                    <div><label style="font-size:0.7rem;color:#6b7280;display:block;margin-bottom:4px;">Shots</label>
+                    <input id="ep-shots" type="number" min="0" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:0.9rem;box-sizing:border-box;text-align:center;"></div>
+                    <div><label style="font-size:0.7rem;color:#6b7280;display:block;margin-bottom:4px;">On Target</label>
+                    <input id="ep-sot" type="number" min="0" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:0.9rem;box-sizing:border-box;text-align:center;"></div>
+                    <div><label style="font-size:0.7rem;color:#6b7280;display:block;margin-bottom:4px;">Fouls</label>
+                    <input id="ep-fouls" type="number" min="0" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:0.9rem;box-sizing:border-box;text-align:center;"></div>
+                    <div><label style="font-size:0.7rem;color:#fbbf24;display:block;margin-bottom:4px;">Yellow Cards</label>
+                    <input id="ep-yellow" type="number" min="0" max="2" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fbbf24;font-size:0.9rem;box-sizing:border-box;text-align:center;"></div>
+                    <div><label style="font-size:0.7rem;color:#ef4444;display:block;margin-bottom:4px;">Red Cards</label>
+                    <input id="ep-red" type="number" min="0" max="1" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#ef4444;font-size:0.9rem;box-sizing:border-box;text-align:center;"></div>
+                    <div><label style="font-size:0.7rem;color:#6b7280;display:block;margin-bottom:4px;">Offsides</label>
+                    <input id="ep-offsides" type="number" min="0" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:0.9rem;box-sizing:border-box;text-align:center;"></div>
+                    <div><label style="font-size:0.7rem;color:#6b7280;display:block;margin-bottom:4px;">Injuries</label>
+                    <input id="ep-injuries" type="number" min="0" max="1" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:0.9rem;box-sizing:border-box;text-align:center;"></div>
+                </div>
+            </div>
+
+            <div id="ep-msg" style="display:none;padding:10px;border-radius:8px;font-size:0.85rem;margin-bottom:12px;"></div>
+
+            <button id="ep-save-btn" type="button"
+                style="width:100%;padding:13px;background:#10b981;color:#000;font-weight:700;border:none;border-radius:8px;font-size:0.95rem;cursor:pointer;">
+                Save Player
+            </button>
+        </div>
+    </div>
 </body>
 </html>
