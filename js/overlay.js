@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderComparativeStatsBoard(state);
         } else if (state.activeGraphic === 'playerDisplay') {
             renderPlayerDisplayCard(state);
-        } else if (state.activeGraphic === 'penalty') {
+        } else if (state.activeGraphic === 'penalty' || state.activeGraphic === 'penaltyTaker') {
             renderPenaltyShootout(state);
         }
 
@@ -174,10 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Penalty card visibility
+        // Penalty scoreboard card visibility (always show during penalty/penaltyTaker)
         const pkCard = document.getElementById('obs-penalty-card');
         if (pkCard) {
-            if (state.activeGraphic === 'penalty') {
+            if (state.activeGraphic === 'penalty' || state.activeGraphic === 'penaltyTaker') {
                 pkCard.style.opacity = '1';
                 pkCard.style.transform = 'translate(-50%,-50%) scale(1)';
                 pkCard.style.pointerEvents = 'auto';
@@ -187,7 +187,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 pkCard.style.pointerEvents = 'none';
             }
         }
+
+        // Penalty taker "preparing" preview card
+        const takerCard = document.getElementById('obs-pk-taker-card');
+        if (takerCard) {
+            const tp = state.penaltyTakerPreview;
+            if (state.activeGraphic === 'penaltyTaker' && tp) {
+                document.getElementById('obs-pk-taker-name').textContent = '#' + (tp.number||'') + ' ' + (tp.name||'');
+                document.getElementById('obs-pk-taker-team').textContent = tp.teamName || '';
+                const photoEl = document.getElementById('obs-pk-taker-photo');
+                photoEl.innerHTML = tp.photoUrl ? `<img src="${tp.photoUrl}" style="width:100%;height:100%;object-fit:cover;">` : '';
+                takerCard.style.opacity = '1';
+                takerCard.style.transform = 'translateX(-50%) translateY(0)';
+                takerCard.style.pointerEvents = 'auto';
+            } else {
+                takerCard.style.opacity = '0';
+                takerCard.style.transform = 'translateX(-50%) translateY(40px)';
+                takerCard.style.pointerEvents = 'none';
+            }
+        }
+
+        // Penalty result announcement (Goal! / Missed!)
+        const resultCard = document.getElementById('obs-pk-result-card');
+        if (resultCard) {
+            const ra = state.penaltyResultAnnounce;
+            const isNew = ra && ra.ts && ra.ts !== lastPenaltyResultTs;
+            if (isNew) {
+                lastPenaltyResultTs = ra.ts;
+                const isGoal = ra.result === 'goal';
+                resultCard.style.background = isGoal
+                    ? 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(15,23,42,0.97))'
+                    : 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(15,23,42,0.97))';
+                resultCard.style.border = isGoal ? '1px solid rgba(16,185,129,0.5)' : '1px solid rgba(239,68,68,0.5)';
+                document.getElementById('obs-pk-result-icon').textContent = isGoal ? '⚽ GOAL!' : '❌ MISSED!';
+                document.getElementById('obs-pk-result-icon').style.color = isGoal ? '#10b981' : '#ef4444';
+                document.getElementById('obs-pk-result-photo').innerHTML = ra.photoUrl
+                    ? `<img src="${ra.photoUrl}" style="width:100%;height:100%;object-fit:cover;">` : '';
+                document.getElementById('obs-pk-result-text').textContent =
+                    `${ra.name} from ${ra.teamName} ${isGoal ? 'scored' : 'missed'} the penalty!`;
+
+                // Show then auto-hide after 3.5s
+                resultCard.style.opacity = '1';
+                resultCard.style.transform = 'translate(-50%,-50%) scale(1)';
+                resultCard.style.pointerEvents = 'auto';
+                clearTimeout(window._pkResultTimeout);
+                window._pkResultTimeout = setTimeout(() => {
+                    resultCard.style.opacity = '0';
+                    resultCard.style.transform = 'translate(-50%,-50%) scale(0.85)';
+                    resultCard.style.pointerEvents = 'none';
+                }, 3500);
+            }
+        }
     };
+
+    let lastPenaltyResultTs = null;
 
     // Penalty Shootout Renderer — 2 columns, expands for sudden death
     const renderPenaltyShootout = (state) => {
