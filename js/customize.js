@@ -41,6 +41,50 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mock-card-photo').innerHTML = `<img src="${DB.getPlayerAvatar(playerRodri, teamB)}" style="width:100%; height:100%;"/>`;
     }
 
+    // ── LIVE MATCH OVERRIDE ────────────────────────────────────
+    // If a real match is live/in-progress, replace the mock scoreboard
+    // and VS card data with the actual match info, and keep the clock ticking.
+    const syncSimulatorWithLiveMatch = () => {
+        const match = DB.getMatchState();
+        if (!match || (match.status !== 'live' && match.status !== 'finished')) return;
+
+        // Scoreboard
+        const elTeamA = document.querySelector('#mock-scoreboard .preview-team-mock:nth-of-type(2)');
+        const elScoreA = document.querySelector('#mock-scoreboard .preview-score-mock:nth-of-type(3)');
+        const elScoreB = document.querySelector('#mock-scoreboard .preview-score-mock:nth-of-type(4)');
+        const elTeamB = document.querySelector('#mock-scoreboard .preview-team-mock:nth-of-type(5)');
+        const elTime = document.querySelector('#mock-scoreboard .preview-time-mock');
+        const crests = document.querySelectorAll('#mock-scoreboard .scoreboard-crest-color');
+
+        if (elTeamA) elTeamA.textContent = match.teamA?.shortName || 'HOM';
+        if (elTeamB) elTeamB.textContent = match.teamB?.shortName || 'AWY';
+        if (elScoreA) elScoreA.textContent = match.scoreA ?? 0;
+        if (elScoreB) elScoreB.textContent = match.scoreB ?? 0;
+        if (crests[0] && match.teamA?.primaryColor) crests[0].style.background = match.teamA.primaryColor;
+        if (crests[1] && match.teamB?.primaryColor) crests[1].style.background = match.teamB.primaryColor;
+
+        // Live ticking clock — same timestamp-based calc as control page
+        let elapsed = match.currentTime || 0;
+        if (match.timerRunning && match.kickoffAt) {
+            const pausedMs = match.totalPausedMs || 0;
+            elapsed = Math.floor((Date.now() - match.kickoffAt - pausedMs) / 1000);
+        }
+        if (elTime) elTime.textContent = DB.formatMatchTime(elapsed);
+
+        // VS card
+        const vsNameA = document.querySelector('#mock-vs-card .preview-vs-team-mock:nth-of-type(1) div:last-child');
+        const vsNameB = document.querySelector('#mock-vs-card .preview-vs-team-mock:nth-of-type(2) div:last-child');
+        if (vsNameA && match.teamA) vsNameA.textContent = match.teamA.name;
+        if (vsNameB && match.teamB) vsNameB.textContent = match.teamB.name;
+        const badgeA = document.getElementById('mock-badge-a');
+        const badgeB = document.getElementById('mock-badge-b');
+        if (badgeA && match.teamA) badgeA.innerHTML = `<img src="${DB.getTeamLogo(match.teamA)}" style="width:100%;height:100%;object-fit:contain;"/>`;
+        if (badgeB && match.teamB) badgeB.innerHTML = `<img src="${DB.getTeamLogo(match.teamB)}" style="width:100%;height:100%;object-fit:contain;"/>`;
+    };
+
+    syncSimulatorWithLiveMatch();
+    setInterval(syncSimulatorWithLiveMatch, 1000);
+
     // Apply config changes to UI inputs
     const applyConfigToInputs = () => {
         // Theme selection
