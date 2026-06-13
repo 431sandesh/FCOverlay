@@ -159,67 +159,75 @@ document.addEventListener('DOMContentLoaded', () => {
     // A. Toggle Scoreboard mockup
     document.getElementById('btn-sim-scoreboard').addEventListener('click', (e) => {
         const btn = e.target;
+        const match = DB.getMatchState();
         if (mockScoreboard.style.display !== 'none') {
             mockScoreboard.style.display = 'none';
             btn.classList.add('btn-secondary');
             btn.classList.remove('btn-primary');
+            if (match.status === 'live') { match.activeGraphic = 'none'; DB.saveMatchState(match); }
         } else {
             mockScoreboard.style.display = 'flex';
             btn.classList.remove('btn-secondary');
             btn.classList.add('btn-primary');
+            if (match.status === 'live') { match.activeGraphic = 'scoreboard'; DB.saveMatchState(match); }
         }
+        if (window.apiFetch) window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: DB.getMatchState() }) }).catch(()=>{});
     });
 
     // B. Toggle Match VS matchup banner
     document.getElementById('btn-sim-vs').addEventListener('click', (e) => {
         const btn = e.target;
+        const match = DB.getMatchState();
         if (mockVsCard.style.display !== 'none') {
             mockVsCard.style.display = 'none';
             btn.classList.add('btn-secondary');
             btn.classList.remove('btn-primary');
+            if (match.status === 'live') { match.activeGraphic = 'none'; DB.saveMatchState(match); }
         } else {
             mockVsCard.style.display = 'flex';
             btn.classList.remove('btn-secondary');
             btn.classList.add('btn-primary');
+            if (match.status === 'live') { match.activeGraphic = 'vs'; DB.saveMatchState(match); }
         }
+        if (window.apiFetch) window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: DB.getMatchState() }) }).catch(()=>{});
     });
 
     // C. Trigger Simulated Goal Banner
     document.getElementById('btn-sim-goal').addEventListener('click', () => {
-        // Clear any active goal timers
         if (goalTimeout) clearTimeout(goalTimeout);
-
-        // Reset display
         mockGoalAlert.style.display = 'flex';
-        // Add active keyframe class
         mockGoalAlert.style.opacity = '1';
         mockGoalAlert.style.transform = 'translateY(0) scale(1)';
-
-        // Auto collapse alert banner after 3.5s
         goalTimeout = setTimeout(() => {
             mockGoalAlert.style.opacity = '0';
             mockGoalAlert.style.transform = 'translateY(40px) scale(0.9)';
-            setTimeout(() => {
-                mockGoalAlert.style.display = 'none';
-            }, 500);
+            setTimeout(() => { mockGoalAlert.style.display = 'none'; }, 500);
         }, 3500);
+
+        // Also fire the real goal popup on the live overlay (test trigger)
+        DB.triggerOverlayAnimation('goal', {
+            playerName: 'Test Player', playerNumber: 9, teamName: teamA?.name || 'Home',
+            photo: playerVini ? DB.getPlayerAvatar(playerVini, teamA) : ''
+        });
     });
 
     // D. Trigger Simulated Yellow Card
     document.getElementById('btn-sim-card').addEventListener('click', () => {
         if (cardTimeout) clearTimeout(cardTimeout);
-
         mockCardAlert.style.display = 'flex';
         mockCardAlert.style.opacity = '1';
         mockCardAlert.style.transform = 'translateY(0) scale(1)';
-
         cardTimeout = setTimeout(() => {
             mockCardAlert.style.opacity = '0';
             mockCardAlert.style.transform = 'translateY(40px) scale(0.9)';
-            setTimeout(() => {
-                mockCardAlert.style.display = 'none';
-            }, 500);
+            setTimeout(() => { mockCardAlert.style.display = 'none'; }, 500);
         }, 3500);
+
+        // Also fire the real yellow card popup on the live overlay (test trigger)
+        DB.triggerOverlayAnimation('card', {
+            cardType: 'yellow', playerName: 'Test Player', playerNumber: 16, teamName: teamB?.name || 'Away',
+            photo: playerRodri ? DB.getPlayerAvatar(playerRodri, teamB) : ''
+        });
     });
 
     // Initial render call
