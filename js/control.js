@@ -626,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── PENALTY SHOOTOUT MANAGER ─────────────────────────────────
     window.PenaltyShootout = {
         _pendingTeam: null,
-        _pendingResult: null,
+        _activeTakers: { A: null, B: null }, // { id, name, photoUrl }
 
         init() {
             const p = matchState.penalties;
@@ -634,6 +634,19 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('pk-team-b-name').textContent = matchState.teamB?.name || 'Away';
             document.getElementById('pk-team-names').textContent =
                 (matchState.teamA?.name || 'Home') + ' vs ' + (matchState.teamB?.name || 'Away');
+
+            // Restore active taker UI if a taker was mid-selection
+            const tp = matchState.penaltyTakerPreview;
+            if (tp && tp.team) {
+                this._activeTakers[tp.team] = { id: null, name: tp.name, photoUrl: tp.photoUrl, teamName: tp.teamName };
+                const t = tp.team.toLowerCase();
+                document.getElementById('pk-taker-select-' + t).style.display = 'none';
+                document.getElementById('pk-taker-active-' + t).style.display = 'block';
+                document.getElementById('pk-taker-name-' + t).textContent = '#' + (tp.number||'') + ' ' + tp.name;
+                document.getElementById('pk-taker-photo-' + t).innerHTML =
+                    tp.photoUrl ? `<img src="${tp.photoUrl}" style="width:100%;height:100%;object-fit:cover;">` : '';
+            }
+
             this.render();
         },
 
@@ -702,40 +715,93 @@ document.addEventListener('DOMContentLoaded', () => {
             return `Round ${Math.max(a.length,b.length)} of ${a.length===b.length?5:'SD'}`;
         },
 
-        openPlayerModal(team, result) {
+        // Step 1: open modal to pick which player is about to take the kick
+        openTakerModal(team) {
             this._pendingTeam = team;
-            this._pendingResult = result;
             const teamId = team === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
             const players = DB.getPlayers(teamId) || [];
             const sel = document.getElementById('pk-player-select');
             sel.innerHTML = players.map(p => `<option value="${p.id}|${p.name}">#${p.number} ${p.name}</option>`).join('')
                 || '<option value="|Unknown">Unknown Player</option>';
             document.getElementById('pk-modal-title').textContent =
-                `${result === 'goal' ? '⚽ Goal' : '❌ Miss'} — ${team === 'A' ? matchState.teamA?.name : matchState.teamB?.name}`;
+                `🎯 Select Penalty Taker — ${team === 'A' ? matchState.teamA?.name : matchState.teamB?.name}`;
             document.getElementById('pk-player-modal').style.display = 'flex';
         },
 
-        confirmPlayer() {
+        // Step 2: confirm taker -> shows on overlay as "preparing", shows Goal/Miss buttons
+        confirmTaker() {
             const sel = document.getElementById('pk-player-select');
             const [pid, pname] = sel.value.split('|');
-            const entry = { result: this._pendingResult, player: pname, playerId: pid };
+            const team = this._pendingTeam;
+            const teamId = team === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
+            const teamObj = team === 'A' ? matchState.teamA : matchState.teamB;
+            const player = DB.getPlayers(teamId).find(p => p.id === pid);
+            const photoUrl = player ? DB.getPlayerAvatar(player, teamObj) : '';
 
-            if (this._pendingTeam === 'A') matchState.penalties.roundsA.push(entry);
+            this._activeTakers[team] = { id: pid, name: pname, photoUrl, teamName: teamObj?.name || '' };
+
+            // Update UI: hide select button, show active taker + goal/miss
+            document.getElementById('pk-taker-select-' + team.toLowerCase()).style.display = 'none';
+            const activeBox = document.getElementById('pk-taker-active-' + team.toLowerCase());
+            activeBox.style.display = 'block';
+            document.getElementById('pk-taker-name-' + team.toLowerCase()).textContent = '#' + (player?.number||'') + ' ' + pname;
+            document.getElementById('pk-taker-photo-' + team.toLowerCase()).innerHTML =
+                photoUrl ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;">` : '';
+
+            document.getElementById('pk-player-modal').style.display = 'none';
+
+            // Push "preparing" state to overlay
+            matchState.penaltyTakerPreview = { team, name: pname, number: player?.number, photoUrl, teamName: teamObj?.name||'' };
+            matchState.activeGraphic = 'penaltyTaker';
+            DB.saveMatchState(matchState);
+            if (window.apiFetch) {
+                window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
+            }
+        },
+
+        // Cancel taker selection (before goal/miss pressed)
+        cancelTaker(team) {
+            this._activeTakers[team] = null;
+            document.getElementById('pk-taker-select-' + team.toLowerCase()).style.display = 'block';
+            document.getElementById('pk-taker-active-' + team.toLowerCase()).style.display = 'none';
+            matchState.penaltyTakerPreview = null;
+            matchState.activeGraphic = 'penalty';
+            DB.saveMatchState(matchState);
+        },
+
+        // Step 3: register goal or miss for the currently selected taker
+        registerResult(team, result) {
+            const taker = this._activeTakers[team];
+            if (!taker) return;
+
+            const entry = { result, player: taker.name, playerId: taker.id, photoUrl: taker.photoUrl };
+            if (team === 'A') matchState.penalties.roundsA.push(entry);
             else matchState.penalties.roundsB.push(entry);
 
             // Update player stats
-            if (pid) {
-                const player = DB.getPlayers().find(p => p.id === pid);
+            if (taker.id) {
+                const player = DB.getPlayers().find(p => p.id === taker.id);
                 if (player) {
                     const stats = { ...(player.stats||{}) };
-                    if (this._pendingResult === 'goal') stats.goals = (stats.goals||0) + 1;
+                    if (result === 'goal') { stats.goals = (stats.goals||0)+1; stats.shotsOnTarget = (stats.shotsOnTarget||0)+1; }
                     stats.shots = (stats.shots||0) + 1;
-                    if (this._pendingResult === 'goal') stats.shotsOnTarget = (stats.shotsOnTarget||0) + 1;
-                    DB.updatePlayer(pid, { stats });
+                    DB.updatePlayer(taker.id, { stats });
                 }
             }
 
-            document.getElementById('pk-player-modal').style.display = 'none';
+            // Push result announcement to overlay
+            matchState.penaltyResultAnnounce = {
+                team, name: taker.name, teamName: taker.teamName, photoUrl: taker.photoUrl,
+                result, ts: Date.now()
+            };
+            matchState.activeGraphic = 'penalty';
+            matchState.penaltyTakerPreview = null;
+
+            // Reset UI for this team back to "select taker"
+            this._activeTakers[team] = null;
+            document.getElementById('pk-taker-select-' + team.toLowerCase()).style.display = 'block';
+            document.getElementById('pk-taker-active-' + team.toLowerCase()).style.display = 'none';
+
             this.render();
         },
 
@@ -766,11 +832,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Goal / Miss button clicks
+    document.querySelectorAll('.pk-select-taker-btn').forEach(btn => {
+        btn.addEventListener('click', () => PenaltyShootout.openTakerModal(btn.dataset.team));
+    });
+    document.querySelectorAll('.pk-cancel-taker-btn').forEach(btn => {
+        btn.addEventListener('click', () => PenaltyShootout.cancelTaker(btn.dataset.team));
+    });
     document.querySelectorAll('.pk-goal-btn').forEach(btn => {
-        btn.addEventListener('click', () => PenaltyShootout.openPlayerModal(btn.dataset.team, 'goal'));
+        btn.addEventListener('click', () => PenaltyShootout.registerResult(btn.dataset.team, 'goal'));
     });
     document.querySelectorAll('.pk-miss-btn').forEach(btn => {
-        btn.addEventListener('click', () => PenaltyShootout.openPlayerModal(btn.dataset.team, 'miss'));
+        btn.addEventListener('click', () => PenaltyShootout.registerResult(btn.dataset.team, 'miss'));
     });
 
     // Cards / fouls during shootout
@@ -792,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.getElementById('pk-modal-confirm').addEventListener('click', () => PenaltyShootout.confirmPlayer());
+    document.getElementById('pk-modal-confirm').addEventListener('click', () => PenaltyShootout.confirmTaker());
     document.getElementById('pk-modal-cancel').addEventListener('click', () => {
         document.getElementById('pk-player-modal').style.display = 'none';
     });
