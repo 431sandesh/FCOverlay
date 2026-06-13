@@ -1105,22 +1105,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         players.forEach(p => {
-            const card = document.createElement('div');
-            card.className = 'player-picker-card';
-            card.dataset.playerid = p.id;
-
-            card.innerHTML = `
-                <div class="player-picker-avatar">
-                    <img src="${DB.getPlayerAvatar(p, teamObj)}" />
-                </div>
-                <div class="player-picker-name">${p.name}</div>
-                <div class="player-picker-num">Squad #${p.number} • ${p.position}</div>
+            const row = document.createElement('div');
+            row.className = 'player-picker-row';
+            row.dataset.playerid = p.id;
+            row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;cursor:pointer;transition:background 0.15s;width:100%;box-sizing:border-box;';
+            row.innerHTML = `
+                <div style="font-size:1.1rem;font-weight:900;color:var(--color-accent);min-width:32px;text-align:center;">${p.number}</div>
+                <div style="flex:1;color:#fff;font-weight:600;font-size:0.9rem;">${p.name}</div>
+                <div style="font-size:0.75rem;color:#9ca3af;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px;">${p.position}</div>
             `;
+            row.addEventListener('mouseenter', () => row.style.background = 'rgba(255,255,255,0.08)');
+            row.addEventListener('mouseleave', () => row.style.background = 'rgba(255,255,255,0.04)');
 
-            listContainer.appendChild(card);
+            listContainer.appendChild(row);
 
-            // Card Click selector
-            card.addEventListener('click', () => {
+            // Row click selector
+            row.addEventListener('click', () => {
                 executeRosterRegisteredAction(p);
                 closeSelectPlayerModal();
             });
