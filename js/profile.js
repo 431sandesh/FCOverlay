@@ -107,6 +107,13 @@
             const file = this.files[0];
             if (!file) return;
 
+            // Enforce 500KB limit
+            if (file.size > 500 * 1024) {
+                alert(`Image too large (${(file.size/1024).toFixed(0)}KB). Maximum allowed size is 500KB.`);
+                this.value = '';
+                return;
+            }
+
             // Show local preview instantly
             const localUrl = URL.createObjectURL(file);
             ProfileManager._renderAvatar(localUrl);
@@ -166,6 +173,9 @@
                 if (this._pendingPhotoFile) {
                     const formData = new FormData();
                     formData.append('avatar', this._pendingPhotoFile);
+                    if (window.BFX_USER.avatarData && window.BFX_USER.avatarData.includes('res.cloudinary.com')) {
+                        formData.append('oldUrl', window.BFX_USER.avatarData);
+                    }
                     const uploadRes = await fetch('/api/user/avatar', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + window.BFX_TOKEN },
