@@ -11,7 +11,7 @@ const multer = require('multer');
 cloudinary.config({ cloudinary_url: process.env.CLOUDINARY_URL });
 const upload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+    limits: { fileSize: 500 * 1024 } // 500KB limit per image
 });
 
 // Upload buffer to Cloudinary
@@ -24,6 +24,21 @@ async function uploadToCloudinary(buffer, folder, publicId) {
         );
         stream.end(buffer);
     });
+}
+
+// Extract Cloudinary public_id from a secure_url and delete it
+// e.g. https://res.cloudinary.com/xxx/image/upload/v123/bhakundofx/user_5/player/abc_456.jpg
+//   -> public_id = bhakundofx/user_5/player/abc_456
+async function deleteFromCloudinaryByUrl(url) {
+    if (!url || typeof url !== 'string' || !url.includes('res.cloudinary.com')) return;
+    try {
+        const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[a-zA-Z0-9]+$/);
+        if (!match) return;
+        const publicId = match[1];
+        await cloudinary.uploader.destroy(publicId);
+    } catch (e) {
+        console.warn('Cloudinary delete failed for', url, e.message);
+    }
 }
 
 const app = express();
@@ -344,13 +359,33 @@ app.get('/api/data', authMiddleware, async (req, res) => {
 
 // ─── CLOUDINARY UPLOAD ROUTES ────────────────────────────────
 
-// Upload player/team/tournament photo
-app.post('/api/upload/:type/:id', authMiddleware, upload.single('photo'), async (req, res) => {
+// Multer error wrapper — catches "file too large" cleanly
+function handleUpload(field) {
+    return (req, res, next) => {
+        upload.single(field)(req, res, (err) => {
+            if (err) {
+                if (err.code === 'LIMIT_FILE_SIZE') {
+                    return res.status(400).json({ error: 'Image too large. Maximum size is 500KB.' });
+                }
+                return res.status(400).json({ error: 'Upload error: ' + err.message });
+            }
+            next();
+        });
+    };
+}
+
+// Upload player/team/tournament photo — old image deleted if oldUrl provided
+app.post('/api/upload/:type/:id', authMiddleware, handleUpload('photo'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
         const folder = `bhakundofx/user_${req.user.id}/${req.params.type}`;
         const publicId = req.params.id + '_' + Date.now();
         const url = await uploadToCloudinary(req.file.buffer, folder, publicId);
+
+        // Delete old image if a previous URL was provided
+        const oldUrl = req.body.oldUrl || req.query.oldUrl;
+        if (oldUrl) await deleteFromCloudinaryByUrl(oldUrl);
+
         res.json({ success: true, url });
     } catch (e) {
         console.error('Upload error:', e);
@@ -358,17 +393,60 @@ app.post('/api/upload/:type/:id', authMiddleware, upload.single('photo'), async 
     }
 });
 
+// Delete a single image from Cloudinary by its URL
+app.post('/api/upload/delete', authMiddleware, async (req, res) => {
+    try {
+        const { url } = req.body;
+        if (!url) return res.status(400).json({ error: 'No URL provided' });
+        await deleteFromCloudinaryByUrl(url);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Delete failed: ' + e.message });
+    }
+});
+
+// Bulk delete multiple images (used when deleting team/tournament with many players)
+app.post('/api/upload/delete-bulk', authMiddleware, async (req, res) => {
+    try {
+        const { urls } = req.body;
+        if (!Array.isArray(urls)) return res.status(400).json({ error: 'urls must be an array' });
+        await Promise.all(urls.filter(Boolean).map(u => deleteFromCloudinaryByUrl(u).catch(()=>{})));
+        res.json({ success: true, deleted: urls.length });
+    } catch (e) {
+        res.status(500).json({ error: 'Bulk delete failed: ' + e.message });
+    }
+});
+
+// Player count check — enforce 300 player limit per account
+app.get('/api/limits/player-count', authMiddleware, async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT data_value FROM user_data WHERE user_id=$1 AND data_key='bfx_database'",
+            [req.user.id]
+        );
+        const db = result.rows.length ? result.rows[0].data_value : null;
+        const count = db?.players?.length || 0;
+        res.json({ count, limit: 300, remaining: Math.max(0, 300 - count) });
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to check limit' });
+    }
+});
+
 // Upload profile avatar
-app.post('/api/user/avatar', authMiddleware, upload.single('avatar'), async (req, res) => {
+app.post('/api/user/avatar', authMiddleware, handleUpload('avatar'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
         const url = await uploadToCloudinary(
             req.file.buffer,
             'bhakundofx/avatars',
-            'user_' + req.user.id
+            'user_' + req.user.id + '_' + Date.now()
         );
+
+        // Delete previous avatar from Cloudinary if it exists
+        const oldUrl = req.body.oldUrl;
+        if (oldUrl) await deleteFromCloudinaryByUrl(oldUrl);
+
         await pool.query('UPDATE users SET avatar_data=$1 WHERE id=$2', [url, req.user.id]);
-        // Update token
         const userResult = await pool.query('SELECT * FROM users WHERE id=$1', [req.user.id]);
         const user = userResult.rows[0];
         const token = jwt.sign(
@@ -377,7 +455,6 @@ app.post('/api/user/avatar', authMiddleware, upload.single('avatar'), async (req
               avatarColor: user.avatar_color, avatarData: url },
             process.env.JWT_SECRET, { expiresIn: '7d' }
         );
-        localStorage_user = { ...req.user, avatarData: url };
         res.json({ success: true, url, token });
     } catch (e) {
         console.error('Avatar upload error:', e);
