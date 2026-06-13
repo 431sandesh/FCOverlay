@@ -388,6 +388,92 @@
                 </section>
 
             </div>
+        <!-- PENALTY SHOOTOUT PANEL -->
+        <div id="penalty-shootout-container" style="display:none; width:100%; padding:24px; box-sizing:border-box;">
+            <div style="max-width:1000px; margin:0 auto;">
+                <div style="text-align:center; margin-bottom:20px;">
+                    <h2 style="color:#fff; font-size:1.6rem; margin:0 0 4px;">🥅 Penalty Shootout</h2>
+                    <div id="pk-score-display" style="font-size:2.2rem; font-weight:900; color:#8b5cf6;">0 — 0</div>
+                    <div id="pk-team-names" style="color:#9ca3af; font-size:0.9rem;"></div>
+                    <div id="pk-status-msg" style="color:#fbbf24; font-size:0.85rem; margin-top:6px; font-weight:600;"></div>
+                </div>
+
+                <!-- Two team columns -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+
+                    <!-- Team A -->
+                    <div class="glass-panel" style="padding:16px;">
+                        <h4 id="pk-team-a-name" style="color:#10b981;margin:0 0 12px;font-size:1rem;text-align:center;">Home Team</h4>
+                        <div id="pk-rounds-a" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;"></div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="pk-goal-btn" data-team="A" type="button"
+                                style="flex:1;padding:12px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#10b981;font-weight:700;cursor:pointer;font-size:0.85rem;">⚽ Goal</button>
+                            <button class="pk-miss-btn" data-team="A" type="button"
+                                style="flex:1;padding:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-weight:700;cursor:pointer;font-size:0.85rem;">❌ Miss</button>
+                        </div>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <button class="pk-card-btn" data-team="A" data-card="yellow" type="button"
+                                style="flex:1;padding:8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);border-radius:6px;color:#fbbf24;font-size:0.75rem;cursor:pointer;">🟨 Yellow</button>
+                            <button class="pk-card-btn" data-team="A" data-card="red" type="button"
+                                style="flex:1;padding:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:6px;color:#ef4444;font-size:0.75rem;cursor:pointer;">🟥 Red</button>
+                            <button class="pk-foul-btn" data-team="A" type="button"
+                                style="flex:1;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9ca3af;font-size:0.75rem;cursor:pointer;">Foul</button>
+                        </div>
+                    </div>
+
+                    <!-- Team B -->
+                    <div class="glass-panel" style="padding:16px;">
+                        <h4 id="pk-team-b-name" style="color:#3b82f6;margin:0 0 12px;font-size:1rem;text-align:center;">Away Team</h4>
+                        <div id="pk-rounds-b" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;"></div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="pk-goal-btn" data-team="B" type="button"
+                                style="flex:1;padding:12px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#10b981;font-weight:700;cursor:pointer;font-size:0.85rem;">⚽ Goal</button>
+                            <button class="pk-miss-btn" data-team="B" type="button"
+                                style="flex:1;padding:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-weight:700;cursor:pointer;font-size:0.85rem;">❌ Miss</button>
+                        </div>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <button class="pk-card-btn" data-team="B" data-card="yellow" type="button"
+                                style="flex:1;padding:8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);border-radius:6px;color:#fbbf24;font-size:0.75rem;cursor:pointer;">🟨 Yellow</button>
+                            <button class="pk-card-btn" data-team="B" data-card="red" type="button"
+                                style="flex:1;padding:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:6px;color:#ef4444;font-size:0.75rem;cursor:pointer;">🟥 Red</button>
+                            <button class="pk-foul-btn" data-team="B" type="button"
+                                style="flex:1;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9ca3af;font-size:0.75rem;cursor:pointer;">Foul</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Settings & overlay controls -->
+                <div class="glass-panel" style="padding:16px;margin-bottom:16px;">
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                        <button id="pk-show-overlay" type="button"
+                            style="padding:10px 16px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-weight:600;cursor:pointer;font-size:0.85rem;">🥅 Show Penalty Overlay</button>
+                        <button id="pk-hide-overlay" type="button"
+                            style="padding:10px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:0.85rem;">Hide Overlay</button>
+                        <button id="pk-undo" type="button"
+                            style="padding:10px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:0.85rem;">↩ Undo Last</button>
+                        <span style="flex:1;"></span>
+                        <button id="pk-end-shootout" type="button"
+                            style="padding:10px 20px;background:#ef4444;color:#fff;font-weight:700;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">End Match</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player name prompt modal for goal/miss -->
+        <div id="pk-player-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;">
+            <div style="background:#0d1f17;border:1px solid rgba(139,92,246,0.3);border-radius:16px;padding:24px;width:100%;max-width:360px;margin:20px;">
+                <h3 id="pk-modal-title" style="color:#fff;margin:0 0 14px;font-size:1rem;">Who took this penalty?</h3>
+                <select id="pk-player-select" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.9rem;margin-bottom:16px;"></select>
+                <div style="display:flex;gap:10px;">
+                    <button id="pk-modal-cancel" type="button"
+                        style="flex:1;padding:11px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;cursor:pointer;font-weight:600;">Cancel</button>
+                    <button id="pk-modal-confirm" type="button"
+                        style="flex:2;padding:11px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.95rem;">Confirm</button>
+                </div>
+            </div>
+        </div>
+
         <!-- POST-MATCH SCREEN — same level as wizard & live dashboard -->
         <div id="post-match-container" style="display:none; width:100%; padding:24px; box-sizing:border-box;">
             <div style="max-width:860px; margin:0 auto;">
@@ -409,9 +495,9 @@
                             style="padding:12px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:8px;color:#60a5fa;font-weight:600;cursor:pointer;font-size:0.85rem;">
                             📈 Match Stats
                         </button>
-                        <button onclick="postMatchTrigger('lineups')" type="button"
-                            style="padding:12px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-weight:600;cursor:pointer;font-size:0.85rem;">
-                            👥 Team Lineups
+                        <button onclick="PlayerDisplay.open()" type="button"
+                            style="padding:12px;background:rgba(236,72,153,0.15);border:1px solid rgba(236,72,153,0.3);border-radius:8px;color:#ec4899;font-weight:600;cursor:pointer;font-size:0.85rem;">
+                            ⭐ Player Display
                         </button>
                         <button onclick="postMatchTrigger('vs')" type="button"
                             style="padding:12px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:8px;color:#fbbf24;font-weight:600;cursor:pointer;font-size:0.85rem;">
@@ -493,20 +579,99 @@
 
 
     <!-- Extra Time Modal -->
-    <div id="extra-time-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;">
-        <div style="background:#0d1f17;border:1px solid rgba(16,185,129,0.3);border-radius:16px;padding:28px;width:100%;max-width:380px;margin:20px;">
+    <div id="extra-time-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;">
+        <div style="background:#0d1f17;border:1px solid rgba(245,158,11,0.3);border-radius:16px;padding:28px;width:100%;max-width:420px;margin:20px auto;">
             <h3 style="color:#f59e0b;margin:0 0 6px;font-size:1.1rem;">⏱ Extra Time</h3>
-            <p style="color:#9ca3af;font-size:0.85rem;margin:0 0 20px;">How many minutes per extra time half?</p>
+            <p style="color:#9ca3af;font-size:0.85rem;margin:0 0 20px;">90 minutes finished — show info, then kick off extra time.</p>
+
+            <!-- Broadcast triggers while preparing -->
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;margin-bottom:18px;">
+                <label style="font-size:0.7rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:10px;">Show on Overlay (optional)</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <button onclick="postMatchTrigger('scoreboard')" type="button"
+                        style="padding:9px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:7px;color:#10b981;font-size:0.78rem;font-weight:600;cursor:pointer;">📊 Scoreboard</button>
+                    <button onclick="postMatchTrigger('stats')" type="button"
+                        style="padding:9px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:7px;color:#60a5fa;font-size:0.78rem;font-weight:600;cursor:pointer;">📈 Match Stats</button>
+                    <button onclick="postMatchTrigger('lineups')" type="button"
+                        style="padding:9px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);border-radius:7px;color:#a78bfa;font-size:0.78rem;font-weight:600;cursor:pointer;">👥 Lineups</button>
+                    <button onclick="postMatchTrigger('none')" type="button"
+                        style="padding:9px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:7px;color:#ef4444;font-size:0.78rem;font-weight:600;cursor:pointer;">✕ Clear Overlay</button>
+                </div>
+            </div>
+
             <div style="margin-bottom:16px;">
-                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Minutes per half</label>
+                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Minutes per extra-time half</label>
                 <input type="number" id="et-minutes-input" value="15" min="1" max="30"
                     style="width:100%;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:1.2rem;text-align:center;box-sizing:border-box;">
             </div>
             <div style="display:flex;gap:10px;">
                 <button onclick="document.getElementById('extra-time-modal').style.display='none'"
-                    style="flex:1;padding:11px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;cursor:pointer;font-weight:600;">Cancel</button>
+                    style="flex:1;padding:11px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;cursor:pointer;font-weight:600;">Close</button>
                 <button id="btn-confirm-extra-time"
                     style="flex:2;padding:11px;background:#f59e0b;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.95rem;">Kick Off Extra Time</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Display Modal (MVP / Best GK / Hat-trick / Custom) -->
+    <div id="player-display-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;">
+        <div style="background:#0d1f17;border:1px solid rgba(236,72,153,0.25);border-radius:16px;padding:28px;width:100%;max-width:440px;margin:20px auto;position:relative;">
+            <button onclick="PlayerDisplay.close()"
+                style="position:absolute;top:14px;right:16px;background:none;border:none;color:#9ca3af;font-size:1.2rem;cursor:pointer;">✕</button>
+            <h3 style="color:#fff;margin:0 0 6px;font-size:1.1rem;">⭐ Player Display</h3>
+            <p style="color:#9ca3af;font-size:0.85rem;margin:0 0 20px;">Highlight a player on the broadcast overlay.</p>
+
+            <!-- Award Type -->
+            <div style="margin-bottom:16px;">
+                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:8px;">Award / Title</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="pd-award-grid">
+                    <button class="pd-award-btn" data-award="Man of the Match" type="button"
+                        style="padding:10px;background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.25);border-radius:8px;color:#ec4899;font-size:0.8rem;font-weight:600;cursor:pointer;">🏆 Man of the Match</button>
+                    <button class="pd-award-btn" data-award="Best Goalkeeper" type="button"
+                        style="padding:10px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:8px;color:#60a5fa;font-size:0.8rem;font-weight:600;cursor:pointer;">🧤 Best Goalkeeper</button>
+                    <button class="pd-award-btn" data-award="Hat-Trick Hero" type="button"
+                        style="padding:10px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);border-radius:8px;color:#fbbf24;font-size:0.8rem;font-weight:600;cursor:pointer;">⚽⚽⚽ Hat-Trick Hero</button>
+                    <button class="pd-award-btn" data-award="Top Scorer" type="button"
+                        style="padding:10px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:8px;color:#10b981;font-size:0.8rem;font-weight:600;cursor:pointer;">👟 Top Scorer</button>
+                    <button class="pd-award-btn" data-award="Best Young Player" type="button"
+                        style="padding:10px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);border-radius:8px;color:#a78bfa;font-size:0.8rem;font-weight:600;cursor:pointer;">🌟 Best Young Player</button>
+                    <button class="pd-award-btn" data-award="Custom" type="button"
+                        style="padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.8rem;font-weight:600;cursor:pointer;">✏️ Custom Title</button>
+                </div>
+            </div>
+
+            <!-- Custom title input (shown if Custom selected) -->
+            <div id="pd-custom-title-wrap" style="display:none;margin-bottom:16px;">
+                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Custom Title</label>
+                <input id="pd-custom-title" type="text" placeholder="e.g. Player of the Tournament"
+                    style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.9rem;box-sizing:border-box;">
+            </div>
+
+            <!-- Team select -->
+            <div style="margin-bottom:14px;">
+                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Team</label>
+                <select id="pd-team-select" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.9rem;">
+                    <option value="A">Home Team</option>
+                    <option value="B">Away Team</option>
+                </select>
+            </div>
+
+            <!-- Player select -->
+            <div style="margin-bottom:20px;">
+                <label style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;display:block;margin-bottom:6px;">Player</label>
+                <select id="pd-player-select" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.9rem;">
+                </select>
+            </div>
+
+            <div style="display:flex;gap:10px;">
+                <button onclick="PlayerDisplay.clear()" type="button"
+                    style="flex:1;padding:12px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:8px;color:#ef4444;font-weight:600;cursor:pointer;font-size:0.85rem;">
+                    Clear Overlay
+                </button>
+                <button id="pd-show-btn" type="button"
+                    style="flex:2;padding:12px;background:#ec4899;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">
+                    Show on Overlay
+                </button>
             </div>
         </div>
     </div>
