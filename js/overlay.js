@@ -158,6 +158,107 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (state.activeGraphic === 'stats') {
             obsStatsBoard.classList.add('active');
             renderComparativeStatsBoard(state);
+        } else if (state.activeGraphic === 'playerDisplay') {
+            renderPlayerDisplayCard(state);
+        } else if (state.activeGraphic === 'penalty') {
+            renderPenaltyShootout(state);
+        }
+
+        // Player Display card visibility
+        const pdCard = document.getElementById('obs-player-display-card');
+        if (pdCard) {
+            if (state.activeGraphic === 'playerDisplay' && state.playerDisplay?.active) {
+                pdCard.classList.add('active');
+            } else {
+                pdCard.classList.remove('active');
+            }
+        }
+
+        // Penalty card visibility
+        const pkCard = document.getElementById('obs-penalty-card');
+        if (pkCard) {
+            if (state.activeGraphic === 'penalty') {
+                pkCard.style.opacity = '1';
+                pkCard.style.transform = 'translate(-50%,-50%) scale(1)';
+                pkCard.style.pointerEvents = 'auto';
+            } else {
+                pkCard.style.opacity = '0';
+                pkCard.style.transform = 'translate(-50%,-50%) scale(0.9)';
+                pkCard.style.pointerEvents = 'none';
+            }
+        }
+    };
+
+    // Penalty Shootout Renderer — 2 columns, expands for sudden death
+    const renderPenaltyShootout = (state) => {
+        const p = state.penalties;
+        if (!p) return;
+
+        document.getElementById('obs-pk-team-a').textContent = state.teamA?.name || 'Home';
+        document.getElementById('obs-pk-team-b').textContent = state.teamB?.name || 'Away';
+
+        const scoreA = p.roundsA.filter(r => r && r.result === 'goal').length;
+        const scoreB = p.roundsB.filter(r => r && r.result === 'goal').length;
+        document.getElementById('obs-pk-score').textContent = scoreA + ' — ' + scoreB;
+
+        const maxRounds = Math.max(5, p.roundsA.length, p.roundsB.length);
+        const colA = document.getElementById('obs-pk-rounds-a');
+        const colB = document.getElementById('obs-pk-rounds-b');
+        colA.innerHTML = ''; colB.innerHTML = '';
+
+        const renderIcon = (entry) => {
+            if (!entry) {
+                // Empty pending slot — grey circle outline
+                return `<div style="width:32px;height:32px;border-radius:50%;border:2px dashed rgba(255,255,255,0.2);flex-shrink:0;"></div>`;
+            }
+            if (entry.result === 'goal') {
+                // Green ball
+                return `<div style="width:32px;height:32px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;box-shadow:0 0 10px rgba(16,185,129,0.5);">⚽</div>`;
+            }
+            // Red goalpost with cross (miss)
+            return `<div style="width:32px;height:32px;border-radius:6px;background:rgba(239,68,68,0.2);border:2px solid #ef4444;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;color:#ef4444;font-weight:900;box-shadow:0 0 10px rgba(239,68,68,0.4);">✕</div>`;
+        };
+
+        for (let i = 0; i < maxRounds; i++) {
+            const a = p.roundsA[i], b = p.roundsB[i];
+            const rowA = document.createElement('div');
+            rowA.style.cssText = 'display:flex;align-items:center;gap:8px;';
+            rowA.innerHTML = renderIcon(a) + `<span style="color:#fff;font-size:0.78rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a?.player || ''}</span>`;
+            colA.appendChild(rowA);
+
+            const rowB = document.createElement('div');
+            rowB.style.cssText = 'display:flex;align-items:center;gap:8px;flex-direction:row-reverse;';
+            rowB.innerHTML = renderIcon(b) + `<span style="color:#fff;font-size:0.78rem;flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${b?.player || ''}</span>`;
+            colB.appendChild(rowB);
+        }
+
+        // Status message
+        const n = Math.min(p.roundsA.length, p.roundsB.length);
+        let status = '';
+        if (n < 5) {
+            status = `Round ${Math.max(p.roundsA.length, p.roundsB.length, 1)} of 5`;
+        } else if (scoreA !== scoreB) {
+            status = `🏆 ${scoreA > scoreB ? (state.teamA?.name||'Home') : (state.teamB?.name||'Away')} WIN!`;
+        } else {
+            status = 'SUDDEN DEATH';
+        }
+        document.getElementById('obs-pk-status').textContent = status;
+    };
+
+    // Player Display Card Populator (MVP / Best GK / Hat-trick etc)
+    const renderPlayerDisplayCard = (state) => {
+        const pd = state.playerDisplay;
+        if (!pd || !pd.active) return;
+        const card = document.getElementById('obs-player-display-card');
+        if (!card) return;
+
+        document.getElementById('obs-pd-award').textContent = pd.award || 'Featured Player';
+        document.getElementById('obs-pd-name').textContent = pd.playerName || '';
+        document.getElementById('obs-pd-details').textContent =
+            `${pd.teamName || ''} • #${pd.playerNumber || ''} • ${pd.playerPosition || ''}`;
+        const photoEl = document.getElementById('obs-pd-photo');
+        if (photoEl && pd.photoUrl) {
+            photoEl.innerHTML = `<img src="${pd.photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
         }
     };
 
