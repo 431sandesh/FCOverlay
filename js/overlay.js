@@ -7,6 +7,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const OVERLAY_UID = urlParams.get('uid'); // null if opened in same browser
 
+    // ── RESOLVE USER NAMESPACE FOR localStorage (db.js userKey) ─
+    // db.js prefixes all keys with the logged-in user's id (bfx_<id>_...).
+    // overlay.html has no auth-guard, so window.BFX_USER is normally unset
+    // and DB falls back to "bfx_guest_..." — which never matches control.js.
+    // Fix: pull the user from localStorage directly (same browser session)
+    // or, if opened via ?uid=, fake a user object with that id.
+    if (!window.BFX_USER) {
+        if (OVERLAY_UID) {
+            window.BFX_USER = { id: OVERLAY_UID };
+        } else {
+            try {
+                const stored = localStorage.getItem('bfx_user');
+                if (stored) window.BFX_USER = JSON.parse(stored);
+            } catch (e) {}
+        }
+    }
+
     // Core database keys mapping (shared from db.js)
     const DB_KEYS = {
         DATABASE: 'bfx_database',
@@ -56,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newStr = JSON.stringify(json.data);
             if (newStr !== lastMatchStateStr) {
                 lastMatchStateStr = newStr;
-                localStorage.setItem(DB_KEYS.MATCH_STATE, newStr);
+                localStorage.setItem('bfx_' + OVERLAY_UID + '_' + DB_KEYS.MATCH_STATE, newStr);
                 loadBroadcastStateGraphics();
             }
         } catch(e) {}
