@@ -1865,3 +1865,10 @@ input:checked + .slider:before {
     font-weight: 700;
     color: var(--color-accent);
 }
+
+/* Player Display Card (MVP / Best GK / Hat-trick) */
+#obs-player-display-card.active {
+    opacity: 1 !important;
+    transform: translateX(-50%) translateY(0) !important;
+    pointer-events: auto;
+}
