@@ -716,12 +716,25 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         // Step 1: open modal to pick which player is about to take the kick
+        // Get players who already took a kick in the current 5-player cycle
+        _usedTakerIds(team) {
+            const rounds = team === 'A' ? matchState.penalties.roundsA : matchState.penalties.roundsB;
+            const cycleLen = 5;
+            const cycleIndex = Math.floor((rounds.length) / cycleLen); // which cycle we're in
+            const cycleStart = cycleIndex * cycleLen;
+            return rounds.slice(cycleStart).map(r => r.playerId).filter(Boolean);
+        },
+
         openTakerModal(team) {
             this._pendingTeam = team;
             const teamId = team === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
             const players = DB.getPlayers(teamId) || [];
+            const used = this._usedTakerIds(team);
+            const available = players.filter(p => !used.includes(p.id));
+            const pool = available.length > 0 ? available : players; // if all used, full list re-appears (new cycle)
+
             const sel = document.getElementById('pk-player-select');
-            sel.innerHTML = players.map(p => `<option value="${p.id}|${p.name}">#${p.number} ${p.name}</option>`).join('')
+            sel.innerHTML = pool.map(p => `<option value="${p.id}|${p.name}">#${p.number} ${p.name}</option>`).join('')
                 || '<option value="|Unknown">Unknown Player</option>';
             document.getElementById('pk-modal-title').textContent =
                 `🎯 Select Penalty Taker — ${team === 'A' ? matchState.teamA?.name : matchState.teamB?.name}`;
@@ -845,23 +858,79 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => PenaltyShootout.registerResult(btn.dataset.team, 'miss'));
     });
 
-    // Cards / fouls during shootout
+    // Cards / fouls during shootout — now with player selection
+    PenaltyShootout._pendingCardAction = null; // {team, type: 'yellow'|'red'|'foul'}
+
+    function openCardPlayerModal(team, type) {
+        PenaltyShootout._pendingCardAction = { team, type };
+        const teamId = team === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
+        const players = DB.getPlayers(teamId) || [];
+        const sel = document.getElementById('pk-card-player-select');
+        sel.innerHTML = players.map(p => `<option value="${p.id}|${p.name}">#${p.number} ${p.name}</option>`).join('')
+            || '<option value="|Unknown">Unknown Player</option>';
+        const labels = { yellow: '🟨 Yellow Card', red: '🟥 Red Card', foul: 'Foul' };
+        const teamObj = team === 'A' ? matchState.teamA : matchState.teamB;
+        document.getElementById('pk-card-modal-title').textContent =
+            `${labels[type]} — ${teamObj?.name || 'Team'}`;
+        document.getElementById('pk-card-modal').style.display = 'flex';
+    }
+
     document.querySelectorAll('.pk-card-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const team = btn.dataset.team;
-            const cardType = btn.dataset.card;
-            const teamObj = team === 'A' ? matchState.teamA : matchState.teamB;
-            logMatchTimelineEvent(cardType === 'yellow' ? 'Yellow Card' : 'Red Card', cardType,
-                { desc: `${teamObj?.name || 'Team'} — Penalty Shootout` });
-            DB.saveMatchState(matchState);
-        });
+        btn.addEventListener('click', () => openCardPlayerModal(btn.dataset.team, btn.dataset.card));
     });
     document.querySelectorAll('.pk-foul-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const team = btn.dataset.team;
-            const teamObj = team === 'A' ? matchState.teamA : matchState.teamB;
-            logMatchTimelineEvent('Foul', 'info', { desc: `${teamObj?.name || 'Team'} — Penalty Shootout` });
-        });
+        btn.addEventListener('click', () => openCardPlayerModal(btn.dataset.team, 'foul'));
+    });
+
+    document.getElementById('pk-card-modal-confirm').addEventListener('click', () => {
+        const action = PenaltyShootout._pendingCardAction;
+        if (!action) return;
+        const sel = document.getElementById('pk-card-player-select');
+        const [pid, pname] = sel.value.split('|');
+        const teamObj = action.team === 'A' ? matchState.teamA : matchState.teamB;
+
+        // Update player stats
+        if (pid) {
+            const player = DB.getPlayers().find(p => p.id === pid);
+            if (player) {
+                const stats = { ...(player.stats||{}) };
+                if (action.type === 'yellow') stats.yellowCards = (stats.yellowCards||0) + 1;
+                else if (action.type === 'red') stats.redCards = (stats.redCards||0) + 1;
+                else stats.fouls = (stats.fouls||0) + 1;
+                DB.updatePlayer(pid, { stats });
+            }
+        }
+
+        // Log timeline event with player name
+        const labels = { yellow: 'Yellow Card', red: 'Red Card', foul: 'Foul' };
+        logMatchTimelineEvent(labels[action.type], action.type === 'foul' ? 'info' : action.type,
+            { desc: `${pname} (${teamObj?.name || 'Team'}) — Penalty Shootout` });
+
+        // Trigger overlay card announcement (yellow/red only, not generic fouls)
+        if (action.type === 'yellow' || action.type === 'red') {
+            const player = DB.getPlayers().find(p => p.id === pid);
+            const photoUrl = player ? DB.getPlayerAvatar(player, teamObj) : '';
+            DB.triggerOverlayAnimation('card', {
+                cardType: action.type,
+                playerName: pname,
+                playerNumber: player?.number,
+                teamName: teamObj?.name,
+                photoUrl
+            });
+        }
+
+        DB.saveMatchState(matchState);
+        if (window.apiFetch) {
+            window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
+        }
+
+        document.getElementById('pk-card-modal').style.display = 'none';
+        PenaltyShootout._pendingCardAction = null;
+    });
+
+    document.getElementById('pk-card-modal-cancel').addEventListener('click', () => {
+        document.getElementById('pk-card-modal').style.display = 'none';
+        PenaltyShootout._pendingCardAction = null;
     });
 
     document.getElementById('pk-modal-confirm').addEventListener('click', () => PenaltyShootout.confirmTaker());
