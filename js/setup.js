@@ -3,10 +3,11 @@
 // ─── CLOUDINARY UPLOAD HELPER ───────────────────────────────
 // Uploads a file directly to Railway → Cloudinary via API
 // Falls back to compressed base64 if upload fails
-async function uploadPhoto(file, type, id) {
+async function uploadPhoto(file, type, id, oldUrl) {
     try {
         const formData = new FormData();
         formData.append('photo', file);
+        if (oldUrl && oldUrl.includes('res.cloudinary.com')) formData.append('oldUrl', oldUrl);
         const res = await fetch(`/api/upload/${type}/${id}`, {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('bfx_token') },
@@ -17,7 +18,57 @@ async function uploadPhoto(file, type, id) {
         throw new Error(data.error);
     } catch (e) {
         console.warn('Cloudinary upload failed, using base64 fallback:', e.message);
-        return null; // will fall back to compressImage
+        return null;
+    }
+}
+
+// Delete a single Cloudinary image (no-op for base64/SVG data URLs)
+async function deleteCloudImage(url) {
+    if (!url || !url.includes('res.cloudinary.com')) return;
+    try {
+        await fetch('/api/upload/delete', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('bfx_token') },
+            body: JSON.stringify({ url })
+        });
+    } catch (e) { console.warn('Cloud image delete failed:', e); }
+}
+
+// Delete many Cloudinary images at once
+async function deleteCloudImagesBulk(urls) {
+    const cloudUrls = (urls||[]).filter(u => u && u.includes('res.cloudinary.com'));
+    if (cloudUrls.length === 0) return;
+    try {
+        await fetch('/api/upload/delete-bulk', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('bfx_token') },
+            body: JSON.stringify({ urls: cloudUrls })
+        });
+    } catch (e) { console.warn('Bulk cloud delete failed:', e); }
+}
+
+// 500KB client-side file size check before any upload attempt
+function checkFileSize(file) {
+    const MAX = 500 * 1024; // 500KB
+    if (file.size > MAX) {
+        alert(`Image too large (${(file.size/1024).toFixed(0)}KB). Maximum allowed size is 500KB. Please choose a smaller image.`);
+        return false;
+    }
+    return true;
+}
+
+// Check player limit (300 per account) before adding a new player
+async function checkPlayerLimit() {
+    try {
+        const res = await window.apiFetch('/api/limits/player-count');
+        const data = await res.json();
+        if (data.count >= data.limit) {
+            alert(`Player limit reached (${data.limit} players max per account). Delete some players before adding new ones.`);
+            return false;
+        }
+        return true;
+    } catch (e) {
+        return true; // fail open if check itself fails
     }
 }
 
@@ -48,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let tempPlayerPhotoBase64 = '';
     let tempTournamentLogoBase64 = '';
     let tempTeamLogoBase64 = '';
+    let originalTournamentLogo = '';
+    let originalTeamLogo = '';
 
     // Cache DOM Elements
     const treeList = document.getElementById('navigator-tree-list');
@@ -202,10 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectNode('team', team.id);
             });
 
-            // Action delete click
-            tr.querySelector('.btn-delete-team-row').addEventListener('click', (e) => {
+            // Action delete click — cascades to team logo + all player photos
+            tr.querySelector('.btn-delete-team-row').addEventListener('click', async (e) => {
                 e.stopPropagation();
                 if (confirm(`Are you sure you want to delete ${team.name} and all its players?`)) {
+                    await cascadeDeleteTeamImages(team.id);
                     DB.deleteTeam(team.id);
                     showTournamentEditor(tid);
                     renderNavigatorTree();
@@ -288,10 +342,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Delete
         tbody.querySelectorAll('.btn-delete-player').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 const pid = e.currentTarget.dataset.pid;
                 const player = DB.getPlayers().find(p => p.id === pid);
                 if (player && confirm(`Remove ${player.name} from the roster?`)) {
+                    // Delete player's cloud photo before removing record
+                    if (player.photo) await deleteCloudImage(player.photo);
                     DB.deletePlayer(pid);
                     showTeamEditor(teamId);
                 }
@@ -378,13 +434,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     placeholderSvg.style.display = 'block';
                     tempTournamentLogoBase64 = '';
                 }
+                originalTournamentLogo = tournament.logo || '';
                 
                 document.getElementById('modal-edit-tournament').classList.add('active');
             }
         }
     });
 
-    document.getElementById('form-edit-tournament').addEventListener('submit', () => {
+    document.getElementById('form-edit-tournament').addEventListener('submit', async () => {
         const id = document.getElementById('edit-t-id').value;
         const name = document.getElementById('edit-t-name').value;
         
@@ -394,6 +451,11 @@ document.addEventListener('DOMContentLoaded', () => {
             db.tournaments[tIdx].name = name;
             db.tournaments[tIdx].logo = tempTournamentLogoBase64;
             DB.saveDb(db);
+
+            // If logo changed, delete the old one from Cloudinary
+            if (originalTournamentLogo && originalTournamentLogo !== tempTournamentLogoBase64) {
+                await deleteCloudImage(originalTournamentLogo);
+            }
         }
         
         closeAllModals();
@@ -402,15 +464,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 3. DELETE ACTIVE TOURNAMENT
-    document.getElementById('btn-delete-tournament-action').addEventListener('click', () => {
+    document.getElementById('btn-delete-tournament-action').addEventListener('click', async () => {
         if (activeSelection.type === 'tournament') {
             const t = DB.getTournaments().find(item => item.id === activeSelection.id);
             if (t && confirm(`CRITICAL WARNING: Are you sure you want to delete tournament "${t.name}"? This will erase all member teams, coaches, players, and match statistics logs permanently!`)) {
+                // Cascade: tournament logo + every team's logo + every player's photo
+                const urls = [];
+                if (t.logo) urls.push(t.logo);
+                const db = DB.getDb();
+                const teamsInTournament = db.teams.filter(team => team.tournamentId === t.id);
+                teamsInTournament.forEach(team => {
+                    if (team.logo) urls.push(team.logo);
+                    DB.getPlayers(team.id).forEach(p => { if (p.photo) urls.push(p.photo); });
+                });
+                await deleteCloudImagesBulk(urls);
+
                 DB.deleteTournament(t.id);
                 selectNode('welcome', null);
             }
         }
     });
+
+    // Helper: cascade-delete a team's logo + all its players' photos from Cloudinary
+    async function cascadeDeleteTeamImages(teamId) {
+        const urls = [];
+        const team = DB.getTeams().find(t => t.id === teamId);
+        if (team?.logo) urls.push(team.logo);
+        DB.getPlayers(teamId).forEach(p => { if (p.photo) urls.push(p.photo); });
+        await deleteCloudImagesBulk(urls);
+    }
 
     // 4. ADD CLUB TEAM MODAL
     document.getElementById('btn-add-team-modal').addEventListener('click', () => {
@@ -453,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     previewImg.style.display = 'block';
                     placeholderSvg.style.display = 'none';
                     tempTeamLogoBase64 = team.logo;
+                    originalTeamLogo = team.logo;
                 } else {
                     previewImg.style.display = 'none';
                     placeholderSvg.style.display = 'block';
@@ -464,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('form-edit-team').addEventListener('submit', () => {
+    document.getElementById('form-edit-team').addEventListener('submit', async () => {
         const id = document.getElementById('edit-team-id').value;
         const name = document.getElementById('edit-team-name').value;
         const shortName = document.getElementById('edit-team-short').value;
@@ -481,16 +564,19 @@ document.addEventListener('DOMContentLoaded', () => {
             logo: tempTeamLogoBase64
         });
 
+        if (originalTeamLogo && originalTeamLogo !== tempTeamLogoBase64) { await deleteCloudImage(originalTeamLogo); }
+
         closeAllModals();
         showTeamEditor(id);
         renderNavigatorTree();
     });
 
     // 5. DELETE ACTIVE TEAM
-    document.getElementById('btn-delete-team-action').addEventListener('click', () => {
+    document.getElementById('btn-delete-team-action').addEventListener('click', async () => {
         if (activeSelection.type === 'team') {
             const team = DB.getTeams().find(t => t.id === activeSelection.id);
             if (team && confirm(`Are you sure you want to delete ${team.name}? This will erase its coach and player roster.`)) {
+                await cascadeDeleteTeamImages(team.id);
                 DB.deleteTeam(team.id);
                 selectNode('tournament', team.tournamentId);
             }
@@ -507,6 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-player-photo').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if (!checkFileSize(file)) { e.target.value = ''; return; }
         const previewImg = document.getElementById('img-player-photo-preview');
         const placeholderSvg = document.getElementById('svg-player-photo-placeholder');
 
@@ -532,6 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-t-logo').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!checkFileSize(file)) { e.target.value = ''; return; }
             compressImage(file, 200, 0.85, function(compressed) {
                 tempTournamentLogoBase64 = compressed;
                 const previewImg = document.getElementById('img-t-logo-preview');
@@ -546,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('edit-t-logo').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!checkFileSize(file)) { e.target.value = ''; return; }
             compressImage(file, 200, 0.85, function(compressed) {
                 tempTournamentLogoBase64 = compressed;
                 const previewImg = document.getElementById('img-edit-t-logo-preview');
@@ -561,6 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-team-logo').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!checkFileSize(file)) { e.target.value = ''; return; }
             compressImage(file, 200, 0.85, function(compressed) {
                 tempTeamLogoBase64 = compressed;
                 const previewImg = document.getElementById('img-team-logo-preview');
@@ -575,6 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('edit-team-logo').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!checkFileSize(file)) { e.target.value = ''; return; }
             compressImage(file, 200, 0.85, function(compressed) {
                 tempTeamLogoBase64 = compressed;
                 const previewImg = document.getElementById('img-edit-team-logo-preview');
@@ -586,12 +677,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('form-add-player').addEventListener('submit', () => {
+    document.getElementById('form-add-player').addEventListener('submit', async (e) => {
         const name = document.getElementById('input-player-name').value;
         const number = document.getElementById('input-player-number').value;
         const pos = document.getElementById('input-player-position').value;
 
         if (activeSelection.type === 'team') {
+            // Enforce 300 player limit per account
+            const okToAdd = await checkPlayerLimit();
+            if (!okToAdd) return;
+
             DB.addPlayer(activeSelection.id, name, number, pos, tempPlayerPhotoBase64);
             closeAllModals();
             showTeamEditor(activeSelection.id);
@@ -639,6 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ep-photo-input').addEventListener('change', function() {
         const file = this.files[0];
         if (!file) return;
+        if (!checkFileSize(file)) { this.value = ''; return; }
         editPlayerPhotoFile = file;
         compressImage(file, 300, 0.8, function(compressed) {
             const preview = document.getElementById('ep-photo-preview');
@@ -656,7 +752,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let photoData = null;
         if (editPlayerPhotoFile) {
             // Try Cloudinary upload first
-            const cloudUrl = await uploadPhoto(editPlayerPhotoFile, 'player', pid);
+            const player = DB.getPlayers().find(p => p.id === pid);
+            const oldPhoto = player?.photo || '';
+            const cloudUrl = await uploadPhoto(editPlayerPhotoFile, 'player', pid, oldPhoto);
             if (cloudUrl) {
                 photoData = cloudUrl;
             } else {
