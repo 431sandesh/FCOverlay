@@ -96,6 +96,48 @@
 
             </div>
 
+            <!-- PENALTY SHOOTOUT OVERLAY -->
+            <div class="glass-panel" id="obs-penalty-card" style="
+                position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9);
+                opacity:0; pointer-events:none; transition:all 0.4s ease;
+                padding:24px 32px; border-radius:18px; min-width:520px; z-index:60;
+                background:linear-gradient(135deg, rgba(139,92,246,0.15), rgba(15,23,42,0.97));
+                border:1px solid rgba(139,92,246,0.35);
+            ">
+                <div style="text-align:center;margin-bottom:14px;">
+                    <div style="font-size:0.75rem;color:#a78bfa;text-transform:uppercase;letter-spacing:2px;font-weight:800;">Penalty Shootout</div>
+                    <div id="obs-pk-score" style="font-size:2rem;font-weight:900;color:#fff;margin-top:4px;">0 — 0</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                    <div>
+                        <div id="obs-pk-team-a" style="text-align:center;color:#10b981;font-weight:700;font-size:0.9rem;margin-bottom:8px;">Home</div>
+                        <div id="obs-pk-rounds-a" style="display:flex;flex-direction:column;gap:6px;"></div>
+                    </div>
+                    <div>
+                        <div id="obs-pk-team-b" style="text-align:center;color:#3b82f6;font-weight:700;font-size:0.9rem;margin-bottom:8px;">Away</div>
+                        <div id="obs-pk-rounds-b" style="display:flex;flex-direction:column;gap:6px;"></div>
+                    </div>
+                </div>
+                <div id="obs-pk-status" style="text-align:center;margin-top:14px;color:#fbbf24;font-size:0.9rem;font-weight:700;"></div>
+            </div>
+
+            <!-- PLAYER DISPLAY CARD (MVP / Best GK / Hat-trick etc) -->
+            <div class="glass-panel" id="obs-player-display-card" style="
+                position:absolute; bottom:60px; left:50%; transform:translateX(-50%) translateY(40px);
+                opacity:0; pointer-events:none; transition:all 0.5s ease;
+                display:flex; align-items:center; gap:20px; padding:18px 30px;
+                border-radius:16px; min-width:420px; z-index:50;
+                background:linear-gradient(135deg, rgba(236,72,153,0.18), rgba(15,23,42,0.95));
+                border:1px solid rgba(236,72,153,0.4);
+            ">
+                <div id="obs-pd-photo" style="width:80px;height:80px;border-radius:50%;overflow:hidden;border:3px solid #ec4899;flex-shrink:0;background:#111;"></div>
+                <div>
+                    <div id="obs-pd-award" style="font-size:0.85rem;font-weight:800;color:#ec4899;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Man of the Match</div>
+                    <div id="obs-pd-name" style="font-size:1.6rem;font-weight:900;color:#fff;line-height:1.1;">Player Name</div>
+                    <div id="obs-pd-details" style="font-size:0.85rem;color:#9ca3af;margin-top:4px;">Team • #0 • POS</div>
+                </div>
+            </div>
+
             <!-- 4. COMPARATIVE STATS BOARD -->
             <div class="glass-panel overlay-stats-card" id="obs-stats-board">
                 <div class="overlay-stats-header">
