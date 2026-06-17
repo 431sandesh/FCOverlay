@@ -414,6 +414,33 @@
     <script src="js/auth-guard.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/db.js"></script>
+    <script>
+    // Auto-sync data from server if localStorage is empty on this domain
+    (async function() {
+        const uid = window.BFX_USER?.id;
+        if (!uid) return;
+        const hasData = localStorage.getItem('bfx_' + uid + '_bfx_database');
+        if (!hasData && window.apiFetch) {
+            try {
+                const res = await window.apiFetch('/api/data');
+                const data = await res.json();
+                let loaded = 0;
+                Object.entries(data).forEach(([key, value]) => {
+                    if (value !== null) {
+                        localStorage.setItem('bfx_' + uid + '_' + key, JSON.stringify(value));
+                        loaded++;
+                    }
+                });
+                if (loaded > 0) {
+                    console.log('BhakundoFX: Data synced from server (' + loaded + ' keys). Reloading...');
+                    window.location.reload();
+                }
+            } catch(e) {
+                console.warn('BhakundoFX: Server sync failed:', e.message);
+            }
+        }
+    })();
+    </script>
     <script src="js/control.js"></script>
 </body>
 </html>
