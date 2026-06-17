@@ -1,29 +1,7 @@
 // overlay.js - OBS Broadcast Stream Overlay Sync Controller
 
 document.addEventListener('DOMContentLoaded', () => {
-
-    // ── GET USER ID FROM URL (?uid=5) ─────────────────────────
-    // OBS opens: https://bhakundofx.up.railway.app/overlay.html?uid=5
-    const urlParams = new URLSearchParams(window.location.search);
-    const OVERLAY_UID = urlParams.get('uid'); // null if opened in same browser
-
-    // ── RESOLVE USER NAMESPACE FOR localStorage (db.js userKey) ─
-    // db.js prefixes all keys with the logged-in user's id (bfx_<id>_...).
-    // overlay.html has no auth-guard, so window.BFX_USER is normally unset
-    // and DB falls back to "bfx_guest_..." — which never matches control.js.
-    // Fix: pull the user from localStorage directly (same browser session)
-    // or, if opened via ?uid=, fake a user object with that id.
-    if (!window.BFX_USER) {
-        if (OVERLAY_UID) {
-            window.BFX_USER = { id: OVERLAY_UID };
-        } else {
-            try {
-                const stored = localStorage.getItem('bfx_user');
-                if (stored) window.BFX_USER = JSON.parse(stored);
-            } catch (e) {}
-        }
-    }
-
+    
     // Core database keys mapping (shared from db.js)
     const DB_KEYS = {
         DATABASE: 'bfx_database',
@@ -31,60 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
         OVERLAY_CONFIG: 'bfx_overlay_config',
         OVERLAY_TRIGGER: 'bfx_overlay_trigger'
     };
-
-    // ── REAL-TIME SYNC ────────────────────────────────────────
-    // Two polling methods run together:
-    // 1. localStorage poll — works when control + overlay in same browser
-    // 2. Server poll — works in OBS (different browser, uses ?uid= param)
-
-    let lastMatchStateStr = '';
-    let lastTriggerStr = '';
-
-    // Method 1: Poll localStorage directly every second
-    // Catches changes even when storage events don't fire (same window)
-    function pollLocalStorage() {
-        try {
-            const state = DB.getMatchState();
-            const stateStr = JSON.stringify(state);
-            if (stateStr !== lastMatchStateStr) {
-                lastMatchStateStr = stateStr;
-                loadBroadcastStateGraphics();
-            }
-
-            // Check for overlay trigger events (goals, cards etc)
-            const trigger = DB.getLatestTrigger();
-            if (trigger) {
-                const trigStr = JSON.stringify(trigger);
-                if (trigStr !== lastTriggerStr) {
-                    lastTriggerStr = trigStr;
-                    processLiveBroadcastAnnouncements(trigger);
-                }
-            }
-        } catch(e) {}
-    }
-
-    // Method 2: Poll server when opened with ?uid= (OBS browser source)
-    async function pollServer() {
-        if (!OVERLAY_UID) return;
-        try {
-            const res = await fetch('/api/public/match/' + OVERLAY_UID);
-            const json = await res.json();
-            if (!json.data) return;
-            const newStr = JSON.stringify(json.data);
-            if (newStr !== lastMatchStateStr) {
-                lastMatchStateStr = newStr;
-                localStorage.setItem('bfx_' + OVERLAY_UID + '_' + DB_KEYS.MATCH_STATE, newStr);
-                loadBroadcastStateGraphics();
-            }
-        } catch(e) {}
-    }
-
-    // Start both pollers
-    setInterval(pollLocalStorage, 1000);  // 1s for same-browser
-    if (OVERLAY_UID) {
-        pollServer();
-        setInterval(pollServer, 1500);    // 1.5s for OBS
-    }
 
     // Cache DOM Overlay Elements
     const bodyEl = document.body;
@@ -151,7 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('obs-lbl-team-b').textContent = state.teamB.shortName;
         document.getElementById('obs-lbl-score-a').textContent = state.scoreA;
         document.getElementById('obs-lbl-score-b').textContent = state.scoreB;
-        document.getElementById('obs-lbl-clock').textContent = DB.formatMatchTime(state.currentTime);
+        // Use clockDisplay for injury time (45+2' format), fallback to formatMatchTime
+        document.getElementById('obs-lbl-clock').textContent = state.clockDisplay || DB.formatMatchTime(state.currentTime);
         document.getElementById('obs-lbl-half').textContent = (state.currentTime >= state.duration * 60) ? '2ND' : '1ST';
 
         document.getElementById('obs-crest-a').style.background = state.teamA.primaryColor;
@@ -175,160 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (state.activeGraphic === 'stats') {
             obsStatsBoard.classList.add('active');
             renderComparativeStatsBoard(state);
-        } else if (state.activeGraphic === 'playerDisplay') {
-            renderPlayerDisplayCard(state);
-        } else if (state.activeGraphic === 'penalty' || state.activeGraphic === 'penaltyTaker') {
-            renderPenaltyShootout(state);
-        }
-
-        // Player Display card visibility
-        const pdCard = document.getElementById('obs-player-display-card');
-        if (pdCard) {
-            if (state.activeGraphic === 'playerDisplay' && state.playerDisplay?.active) {
-                pdCard.classList.add('active');
-            } else {
-                pdCard.classList.remove('active');
-            }
-        }
-
-        // Penalty scoreboard card visibility (always show during penalty/penaltyTaker)
-        const pkCard = document.getElementById('obs-penalty-card');
-        if (pkCard) {
-            if (state.activeGraphic === 'penalty' || state.activeGraphic === 'penaltyTaker') {
-                pkCard.style.opacity = '1';
-                pkCard.style.transform = 'translate(-50%,-50%) scale(1)';
-                pkCard.style.pointerEvents = 'auto';
-            } else {
-                pkCard.style.opacity = '0';
-                pkCard.style.transform = 'translate(-50%,-50%) scale(0.9)';
-                pkCard.style.pointerEvents = 'none';
-            }
-        }
-
-        // Penalty taker "preparing" preview card
-        const takerCard = document.getElementById('obs-pk-taker-card');
-        if (takerCard) {
-            const tp = state.penaltyTakerPreview;
-            if (state.activeGraphic === 'penaltyTaker' && tp) {
-                document.getElementById('obs-pk-taker-name').textContent = '#' + (tp.number||'') + ' ' + (tp.name||'');
-                document.getElementById('obs-pk-taker-team').textContent = tp.teamName || '';
-                const photoEl = document.getElementById('obs-pk-taker-photo');
-                photoEl.innerHTML = tp.photoUrl ? `<img src="${tp.photoUrl}" style="width:100%;height:100%;object-fit:cover;">` : '';
-                takerCard.style.opacity = '1';
-                takerCard.style.transform = 'translateX(-50%) translateY(0)';
-                takerCard.style.pointerEvents = 'auto';
-            } else {
-                takerCard.style.opacity = '0';
-                takerCard.style.transform = 'translateX(-50%) translateY(40px)';
-                takerCard.style.pointerEvents = 'none';
-            }
-        }
-
-        // Penalty result announcement (Goal! / Missed!)
-        const resultCard = document.getElementById('obs-pk-result-card');
-        if (resultCard) {
-            const ra = state.penaltyResultAnnounce;
-            const isNew = ra && ra.ts && ra.ts !== lastPenaltyResultTs;
-            if (isNew) {
-                lastPenaltyResultTs = ra.ts;
-                const isGoal = ra.result === 'goal';
-                resultCard.style.background = isGoal
-                    ? 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(15,23,42,0.97))'
-                    : 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(15,23,42,0.97))';
-                resultCard.style.border = isGoal ? '1px solid rgba(16,185,129,0.5)' : '1px solid rgba(239,68,68,0.5)';
-                document.getElementById('obs-pk-result-icon').textContent = isGoal ? '⚽ GOAL!' : '❌ MISSED!';
-                document.getElementById('obs-pk-result-icon').style.color = isGoal ? '#10b981' : '#ef4444';
-                document.getElementById('obs-pk-result-photo').innerHTML = ra.photoUrl
-                    ? `<img src="${ra.photoUrl}" style="width:100%;height:100%;object-fit:cover;">` : '';
-                document.getElementById('obs-pk-result-text').textContent =
-                    `${ra.name} from ${ra.teamName} ${isGoal ? 'scored' : 'missed'} the penalty!`;
-
-                // Show then auto-hide after 3.5s
-                resultCard.style.opacity = '1';
-                resultCard.style.transform = 'translate(-50%,-50%) scale(1)';
-                resultCard.style.pointerEvents = 'auto';
-                clearTimeout(window._pkResultTimeout);
-                window._pkResultTimeout = setTimeout(() => {
-                    resultCard.style.opacity = '0';
-                    resultCard.style.transform = 'translate(-50%,-50%) scale(0.85)';
-                    resultCard.style.pointerEvents = 'none';
-                }, 3500);
-            }
-        }
-    };
-
-    let lastPenaltyResultTs = null;
-
-    // Penalty Shootout Renderer — 2 columns, expands for sudden death
-    const renderPenaltyShootout = (state) => {
-        const p = state.penalties;
-        if (!p) return;
-
-        document.getElementById('obs-pk-team-a').textContent = state.teamA?.name || 'Home';
-        document.getElementById('obs-pk-team-b').textContent = state.teamB?.name || 'Away';
-
-        const scoreA = p.roundsA.filter(r => r && r.result === 'goal').length;
-        const scoreB = p.roundsB.filter(r => r && r.result === 'goal').length;
-        document.getElementById('obs-pk-score').textContent = scoreA + ' — ' + scoreB;
-
-        const maxRounds = Math.max(5, p.roundsA.length, p.roundsB.length);
-        const colA = document.getElementById('obs-pk-rounds-a');
-        const colB = document.getElementById('obs-pk-rounds-b');
-        colA.innerHTML = ''; colB.innerHTML = '';
-
-        const renderIcon = (entry) => {
-            if (!entry) {
-                // Empty pending slot — grey circle outline
-                return `<div style="width:32px;height:32px;border-radius:50%;border:2px dashed rgba(255,255,255,0.2);flex-shrink:0;"></div>`;
-            }
-            if (entry.result === 'goal') {
-                // Green ball
-                return `<div style="width:32px;height:32px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;box-shadow:0 0 10px rgba(16,185,129,0.5);">⚽</div>`;
-            }
-            // Red goalpost with cross (miss)
-            return `<div style="width:32px;height:32px;border-radius:6px;background:rgba(239,68,68,0.2);border:2px solid #ef4444;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;color:#ef4444;font-weight:900;box-shadow:0 0 10px rgba(239,68,68,0.4);">✕</div>`;
-        };
-
-        for (let i = 0; i < maxRounds; i++) {
-            const a = p.roundsA[i], b = p.roundsB[i];
-            const rowA = document.createElement('div');
-            rowA.style.cssText = 'display:flex;align-items:center;gap:8px;';
-            rowA.innerHTML = renderIcon(a) + `<span style="color:#fff;font-size:0.78rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a?.player || ''}</span>`;
-            colA.appendChild(rowA);
-
-            const rowB = document.createElement('div');
-            rowB.style.cssText = 'display:flex;align-items:center;gap:8px;flex-direction:row-reverse;';
-            rowB.innerHTML = renderIcon(b) + `<span style="color:#fff;font-size:0.78rem;flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${b?.player || ''}</span>`;
-            colB.appendChild(rowB);
-        }
-
-        // Status message
-        const n = Math.min(p.roundsA.length, p.roundsB.length);
-        let status = '';
-        if (n < 5) {
-            status = `Round ${Math.max(p.roundsA.length, p.roundsB.length, 1)} of 5`;
-        } else if (scoreA !== scoreB) {
-            status = `🏆 ${scoreA > scoreB ? (state.teamA?.name||'Home') : (state.teamB?.name||'Away')} WIN!`;
-        } else {
-            status = 'SUDDEN DEATH';
-        }
-        document.getElementById('obs-pk-status').textContent = status;
-    };
-
-    // Player Display Card Populator (MVP / Best GK / Hat-trick etc)
-    const renderPlayerDisplayCard = (state) => {
-        const pd = state.playerDisplay;
-        if (!pd || !pd.active) return;
-        const card = document.getElementById('obs-player-display-card');
-        if (!card) return;
-
-        document.getElementById('obs-pd-award').textContent = pd.award || 'Featured Player';
-        document.getElementById('obs-pd-name').textContent = pd.playerName || '';
-        document.getElementById('obs-pd-details').textContent =
-            `${pd.teamName || ''} • #${pd.playerNumber || ''} • ${pd.playerPosition || ''}`;
-        const photoEl = document.getElementById('obs-pd-photo');
-        if (photoEl && pd.photoUrl) {
-            photoEl.innerHTML = `<img src="${pd.photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
         }
     };
 
@@ -458,17 +229,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------
     // 3. REAL-TIME STORAGE EVENTS SYNC PROCESSOR
     // -------------------------------------------------------------
-    // Storage events work when control + overlay open in SAME browser
-    // For OBS (different browser), server polling above handles updates
     window.addEventListener('storage', (e) => {
-        if (!e.key) return;
-        if (e.key.includes('overlay_config') || e.key === DB_KEYS.OVERLAY_CONFIG) {
+        if (e.key === DB_KEYS.OVERLAY_CONFIG) {
             loadOverlayCustomizerStyles();
-        } else if (e.key.includes('match_state') || e.key === DB_KEYS.MATCH_STATE) {
+        } else if (e.key === DB_KEYS.MATCH_STATE) {
             loadBroadcastStateGraphics();
-        } else if (e.key.includes('overlay_trigger') || e.key === DB_KEYS.OVERLAY_TRIGGER) {
+        } else if (e.key === DB_KEYS.OVERLAY_TRIGGER) {
             const trigger = DB.getLatestTrigger();
-            if (trigger) processLiveBroadcastAnnouncements(trigger);
+            if (trigger) {
+                processLiveBroadcastAnnouncements(trigger);
+            }
         }
     });
 
