@@ -414,33 +414,36 @@
     <script src="js/auth-guard.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/db.js"></script>
+    <script src="js/control.js"></script>
     <script>
-    // Auto-sync data from server if localStorage is empty on this domain
+    // Auto-sync: check if local data is empty (tournaments=[]) and pull from server
     (async function() {
         const uid = window.BFX_USER?.id;
-        if (!uid) return;
-        const hasData = localStorage.getItem('bfx_' + uid + '_bfx_database');
-        if (!hasData && window.apiFetch) {
+        if (!uid || !window.apiFetch) return;
+        const raw = localStorage.getItem('bfx_' + uid + '_bfx_database');
+        let needsSync = !raw;
+        if (raw) {
+            try {
+                const parsed = JSON.parse(raw);
+                if (!parsed.tournaments || parsed.tournaments.length === 0) needsSync = true;
+            } catch(e) { needsSync = true; }
+        }
+        if (needsSync) {
             try {
                 const res = await window.apiFetch('/api/data');
                 const data = await res.json();
                 let loaded = 0;
                 Object.entries(data).forEach(([key, value]) => {
-                    if (value !== null) {
+                    if (value !== null && value !== undefined) {
                         localStorage.setItem('bfx_' + uid + '_' + key, JSON.stringify(value));
                         loaded++;
                     }
                 });
-                if (loaded > 0) {
-                    console.log('BhakundoFX: Data synced from server (' + loaded + ' keys). Reloading...');
-                    window.location.reload();
-                }
-            } catch(e) {
-                console.warn('BhakundoFX: Server sync failed:', e.message);
-            }
+                if (loaded > 0) { console.log('BFX: Synced ' + loaded + ' keys, reloading...'); window.location.reload(); }
+                else { console.warn('BFX: Server returned no data'); }
+            } catch(e) { console.warn('BFX sync failed:', e.message); }
         }
     })();
     </script>
-    <script src="js/control.js"></script>
 </body>
 </html>
