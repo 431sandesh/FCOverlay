@@ -251,27 +251,24 @@
     <script src="js/auth-guard.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/db.js"></script>
+    <script src="js/customize.js"></script>
     <script>
     (async function() {
         const uid = window.BFX_USER?.id;
-        if (!uid) return;
-        const hasData = localStorage.getItem('bfx_' + uid + '_bfx_database');
-        if (!hasData && window.apiFetch) {
+        if (!uid || !window.apiFetch) return;
+        const raw = localStorage.getItem('bfx_' + uid + '_bfx_database');
+        let needsSync = !raw;
+        if (raw) { try { const p=JSON.parse(raw); if(!p.tournaments||p.tournaments.length===0) needsSync=true; }catch(e){needsSync=true;} }
+        if (needsSync) {
             try {
                 const res = await window.apiFetch('/api/data');
                 const data = await res.json();
                 let loaded = 0;
-                Object.entries(data).forEach(([key, value]) => {
-                    if (value !== null) {
-                        localStorage.setItem('bfx_' + uid + '_' + key, JSON.stringify(value));
-                        loaded++;
-                    }
-                });
+                Object.entries(data).forEach(([key, value]) => { if(value!==null){ localStorage.setItem('bfx_'+uid+'_'+key, JSON.stringify(value)); loaded++; } });
                 if (loaded > 0) window.location.reload();
             } catch(e) {}
         }
     })();
     </script>
-    <script src="js/customize.js"></script>
 </body>
 </html>
