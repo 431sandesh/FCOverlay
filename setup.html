@@ -398,6 +398,27 @@
     <script src="js/auth-guard.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/db.js"></script>
+    <script>
+    (async function() {
+        const uid = window.BFX_USER?.id;
+        if (!uid) return;
+        const hasData = localStorage.getItem('bfx_' + uid + '_bfx_database');
+        if (!hasData && window.apiFetch) {
+            try {
+                const res = await window.apiFetch('/api/data');
+                const data = await res.json();
+                let loaded = 0;
+                Object.entries(data).forEach(([key, value]) => {
+                    if (value !== null) {
+                        localStorage.setItem('bfx_' + uid + '_' + key, JSON.stringify(value));
+                        loaded++;
+                    }
+                });
+                if (loaded > 0) window.location.reload();
+            } catch(e) {}
+        }
+    })();
+    </script>
     <script src="js/setup.js"></script>
 </body>
 </html>
