@@ -10,6 +10,73 @@ document.addEventListener('DOMContentLoaded', () => {
         OVERLAY_TRIGGER: 'bfx_overlay_trigger'
     };
 
+    // ── FIX: Resolve user namespace so overlay reads the right localStorage keys ──
+    // overlay.html has no auth-guard, so BFX_USER must be set manually.
+    // Without this, DB reads from 'bfx_guest_*' instead of 'bfx_1_*'
+    const urlParams = new URLSearchParams(window.location.search);
+    const OVERLAY_UID = urlParams.get('uid');
+
+    if (!window.BFX_USER) {
+        if (OVERLAY_UID) {
+            window.BFX_USER = { id: OVERLAY_UID }; // OBS mode: ?uid=1
+        } else {
+            try {
+                const stored = localStorage.getItem('bfx_user');
+                if (stored) window.BFX_USER = JSON.parse(stored); // Same browser mode
+            } catch(e) {}
+        }
+    }
+
+    // ── SERVER POLLING: Fetch live match state from Railway every 1.5s (for OBS) ──
+    let lastServerStr = '';
+    let lastTriggerStr = '';
+
+    async function pollServer() {
+        if (!OVERLAY_UID) return;
+        try {
+            const res = await fetch('/api/public/match/' + OVERLAY_UID);
+            const json = await res.json();
+            if (!json.data) return;
+            const newStr = JSON.stringify(json.data);
+            if (newStr !== lastServerStr) {
+                lastServerStr = newStr;
+                // Write to namespaced key so DB.getMatchState() finds it
+                const namespacedKey = 'bfx_' + OVERLAY_UID + '_' + DB_KEYS.MATCH_STATE;
+                localStorage.setItem(namespacedKey, newStr);
+                loadBroadcastStateGraphics();
+            }
+        } catch(e) {}
+    }
+
+    // ── LOCAL POLLING: Check localStorage every second (same browser mode) ──
+    let lastLocalStr = '';
+    function pollLocal() {
+        try {
+            const state = DB.getMatchState();
+            const str = JSON.stringify(state);
+            if (str !== lastLocalStr) {
+                lastLocalStr = str;
+                loadBroadcastStateGraphics();
+            }
+            // Also check triggers
+            const trigger = DB.getLatestTrigger();
+            if (trigger) {
+                const tStr = JSON.stringify(trigger);
+                if (tStr !== lastTriggerStr) {
+                    lastTriggerStr = tStr;
+                    processLiveBroadcastAnnouncements(trigger);
+                }
+            }
+        } catch(e) {}
+    }
+
+    // Start both pollers
+    setInterval(pollLocal, 1000);
+    if (OVERLAY_UID) {
+        pollServer(); // Immediate first fetch
+        setInterval(pollServer, 1500);
+    }
+
     // Cache DOM Overlay Elements
     const bodyEl = document.body;
     const graphicContainer = document.getElementById('obs-graphic-container');
@@ -75,8 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('obs-lbl-team-b').textContent = state.teamB.shortName;
         document.getElementById('obs-lbl-score-a').textContent = state.scoreA;
         document.getElementById('obs-lbl-score-b').textContent = state.scoreB;
-        // Use clockDisplay for injury time (45+2' format), fallback to formatMatchTime
-        document.getElementById('obs-lbl-clock').textContent = state.clockDisplay || DB.formatMatchTime(state.currentTime);
+        document.getElementById('obs-lbl-clock').textContent = state.clockDisplay || DB.formatMatchTime(state.currentTime || 0);
         document.getElementById('obs-lbl-half').textContent = (state.currentTime >= state.duration * 60) ? '2ND' : '1ST';
 
         document.getElementById('obs-crest-a').style.background = state.teamA.primaryColor;
@@ -230,15 +296,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. REAL-TIME STORAGE EVENTS SYNC PROCESSOR
     // -------------------------------------------------------------
     window.addEventListener('storage', (e) => {
-        if (e.key === DB_KEYS.OVERLAY_CONFIG) {
+        if (!e.key) return;
+        // Handle both namespaced (bfx_1_bfx_match_state) and plain keys
+        if (e.key.includes('overlay_config')) {
             loadOverlayCustomizerStyles();
-        } else if (e.key === DB_KEYS.MATCH_STATE) {
+        } else if (e.key.includes('match_state')) {
             loadBroadcastStateGraphics();
-        } else if (e.key === DB_KEYS.OVERLAY_TRIGGER) {
+        } else if (e.key.includes('overlay_trigger')) {
             const trigger = DB.getLatestTrigger();
-            if (trigger) {
-                processLiveBroadcastAnnouncements(trigger);
-            }
+            if (trigger) processLiveBroadcastAnnouncements(trigger);
         }
     });
 
