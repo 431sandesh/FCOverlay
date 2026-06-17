@@ -1,4 +1,4 @@
-// auth-guard.js - Include in every protected page (setup, control, customize, overlay)
+// auth-guard.js - Included in every protected page
 (function() {
     const token = localStorage.getItem('bfx_token');
     const user  = localStorage.getItem('bfx_user');
@@ -8,7 +8,6 @@
         throw new Error('Not authenticated');
     }
 
-    // Expose globally for API calls
     window.BFX_TOKEN = token;
     window.BFX_USER  = JSON.parse(user);
 
@@ -28,4 +27,33 @@
         }
         return res;
     };
+
+    // Auto-sync server data to localStorage on page load
+    // This ensures data appears correctly regardless of which domain the user is on
+    window.addEventListener('DOMContentLoaded', async () => {
+        // Only sync if localStorage appears empty for this user
+        const uid = window.BFX_USER?.id;
+        if (!uid) return;
+        const hasLocalData = localStorage.getItem('bfx_' + uid + '_bfx_database');
+        if (!hasLocalData) {
+            try {
+                const res = await window.apiFetch('/api/data');
+                const data = await res.json();
+                let loaded = 0;
+                Object.entries(data).forEach(([key, value]) => {
+                    if (value !== null) {
+                        localStorage.setItem('bfx_' + uid + '_' + key, JSON.stringify(value));
+                        loaded++;
+                    }
+                });
+                if (loaded > 0) {
+                    console.log('BhakundoFX: Loaded ' + loaded + ' data keys from server');
+                    // Reload once to apply the freshly loaded data
+                    window.location.reload();
+                }
+            } catch (e) {
+                console.warn('BhakundoFX: Could not sync from server:', e.message);
+            }
+        }
+    });
 })();
