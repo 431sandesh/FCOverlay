@@ -171,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // C. VS Plate Details Populator
     const renderVsMatchupPlate = (state) => {
+        if (!state || !state.teamA || !state.teamB) return; // guard against null teams
         const db = DB.getDb();
         const tournament = db.tournaments.find(t => t.id === state.tournamentId);
         if (tournament) {
@@ -192,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // D. Squad Lineup Lists Renderer
     const renderSquadLineupsBoard = (state) => {
+        if (!state || !state.teamA || !state.teamB) return;
         // Headers & colors
         document.getElementById('obs-lineup-title-a').textContent = state.teamA.name;
         document.getElementById('obs-lineup-coach-a').textContent = `Coach: ${state.teamA.coach.name}`;
@@ -403,4 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------
     loadOverlayCustomizerStyles();
     loadBroadcastStateGraphics();
+
+    // Expose globally for debugging and external calls
+    window._overlayRender = loadBroadcastStateGraphics;
+    window._overlayStyles = loadOverlayCustomizerStyles;
+    console.log('BhakundoFX Overlay ready. UID:', OVERLAY_UID, '| User:', window.BFX_USER?.id);
 });
