@@ -1,40 +1,44 @@
 // db.js - Unified database & LocalStorage sync layer for BhakundoFX
-// Supports both local (guest) and authenticated (cloud sync) modes
+
+// ─── USER NAMESPACE ──────────────────────────────────────────
+// All localStorage keys are prefixed with the logged-in user's ID
+// so each account has isolated data: bfx_<userId>_<key>
+function userKey(key) {
+    if (window.BFX_USER && window.BFX_USER.id) {
+        return 'bfx_' + window.BFX_USER.id + '_' + key;
+    }
+    return 'bfx_guest_' + key;
+}
 
 // ─── SERVER SYNC ─────────────────────────────────────────────
-// Syncs data to Railway server in background (non-blocking)
 async function syncToServer(key, value) {
-    if (!window.BFX_TOKEN) return;
+    if (!window.BFX_TOKEN || !window.apiFetch) return;
     try {
         await window.apiFetch('/api/data/' + key, {
             method: 'POST',
             body: JSON.stringify({ data: value })
         });
-    } catch (e) {
-        console.warn('Sync to server failed for key:', key);
+    } catch(e) {
+        console.warn('Sync to server failed:', key);
     }
 }
 
-// Load all user data from server into localStorage on login
 async function loadFromServer() {
-    if (!window.BFX_TOKEN) return;
+    if (!window.BFX_TOKEN || !window.apiFetch) return;
     try {
         const res = await window.apiFetch('/api/data');
         const data = await res.json();
-        const uid = window.BFX_USER.id;
+        const uid = window.BFX_USER?.id;
+        if (!uid) return;
         Object.entries(data).forEach(([key, value]) => {
-            if (value !== null) localStorage.setItem('bfx_' + uid + '_' + key, JSON.stringify(value));
+            if (value !== null) {
+                localStorage.setItem('bfx_' + uid + '_' + key, JSON.stringify(value));
+            }
         });
-        console.log('User data loaded from server');
-    } catch (e) {
-        console.warn('Failed to load from server, using local cache');
+        console.log('BhakundoFX: Data loaded from server');
+    } catch(e) {
+        console.warn('loadFromServer failed:', e.message);
     }
-}
-
-// Get namespaced localStorage key (per-user isolation)
-function userKey(key) {
-    if (window.BFX_USER) return 'bfx_' + window.BFX_USER.id + '_' + key;
-    return 'bfx_guest_' + key;
 }
 
 // -------------------------------------------------------------
@@ -125,24 +129,17 @@ const DB = {
     getDb: function() {
         let dbStr = localStorage.getItem(userKey(DB_KEYS.DATABASE));
         if (!dbStr) {
-            // Start with clean empty database — no demo data
             const empty = { tournaments: [], teams: [], players: [] };
-            this.saveDb(empty);
-            return empty;
+            return empty; // Don't auto-save empty — wait for server sync
         }
         try {
             const parsed = JSON.parse(dbStr);
             if (!parsed.tournaments || !parsed.teams || !parsed.players) {
-                const empty = { tournaments: [], teams: [], players: [] };
-                this.saveDb(empty);
-                return empty;
+                return { tournaments: [], teams: [], players: [] };
             }
             return parsed;
-        } catch (e) {
-            console.error("Failed to parse DB, resetting...", e);
-            const empty = { tournaments: [], teams: [], players: [] };
-            this.saveDb(empty);
-            return empty;
+        } catch(e) {
+            return { tournaments: [], teams: [], players: [] };
         }
     },
 
@@ -286,7 +283,6 @@ const DB = {
 
     saveOverlayConfig: function(config) {
         localStorage.setItem(userKey(DB_KEYS.OVERLAY_CONFIG), JSON.stringify(config));
-        syncToServer(DB_KEYS.OVERLAY_CONFIG, config);
     },
 
     // -------------------------------------------------------------
