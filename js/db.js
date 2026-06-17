@@ -7,7 +7,7 @@ function userKey(key) {
     if (window.BFX_USER && window.BFX_USER.id) {
         return 'bfx_' + window.BFX_USER.id + '_' + key;
     }
-    return 'bfx_guest_' + key;
+    return 'bx_guest_' + key;
 }
 
 // ─── SERVER SYNC ─────────────────────────────────────────────
