@@ -152,9 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
             duration: parseInt(document.getElementById('wiz-input-duration').value) || 45,
             status: 'ready',
             currentTime: 0,
-            kickoffAt: null,       // timestamp when match started
-            totalPausedMs: 0,      // total ms spent paused
-            pauseStartAt: null,    // timestamp when current pause began
             scoreA: 0,
             scoreB: 0,
             stats: {
@@ -216,20 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------
     let liveClockInterval = null;
 
-    // ─── TIMESTAMP-BASED ELAPSED TIME ──────────────────────────
-    // Returns real elapsed seconds based on kickoff timestamp
-    // Works even after page close — clock kept by real wall time
-    const getElapsedSeconds = () => {
-        if (!matchState.kickoffAt) return matchState.currentTime || 0;
-        const pausedMs = matchState.totalPausedMs || 0;
-        if (!matchState.timerRunning && matchState.pauseStartAt) {
-            // Clock is paused — elapsed is frozen at pause moment
-            return Math.floor((matchState.pauseStartAt - matchState.kickoffAt - pausedMs) / 1000);
-        }
-        // Clock is running — calculate from now
-        return Math.floor((Date.now() - matchState.kickoffAt - pausedMs) / 1000);
-    };
-
     // Trigger Kickoff whistle start
     document.getElementById('btn-kickoff-action').addEventListener('click', () => {
         // Play Referee whistle sound
@@ -241,17 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set match active
         matchState.status = 'live';
         matchState.timerRunning = true;
-        matchState.kickoffAt = matchState.kickoffAt || Date.now(); // set once
-        matchState.totalPausedMs = matchState.totalPausedMs || 0;
-        matchState.pauseStartAt = null;
         DB.saveMatchState(matchState);
-        // Save to server immediately on kick-off
-        if (window.apiFetch) {
-            window.apiFetch('/api/data/match_state', {
-                method: 'POST',
-                body: JSON.stringify({ data: matchState })
-            }).catch(e => console.warn('Server sync failed:', e));
-        }
 
         // Hide setup screen & show dashboard
         wizardContainer.style.display = 'none';
@@ -302,68 +275,78 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------
     // TIMER / CLOCK LOOP MANAGEMENT
     // -------------------------------------------------------------
+    // ── CLOCK DISPLAY HELPER ────────────────────────────────
+    // Normal time: MM:SS — Injury time: 45+2' or 90+2'
+    const getClockDisplay = () => {
+        const baseDuration = (matchState.baseHalfDuration || matchState.duration || 45);
+        const baseSecs = baseDuration * 60;
+        const t = matchState.currentTime || 0;
+        if (t < baseSecs) {
+            return DB.formatMatchTime(t);
+        } else {
+            // Injury/stoppage time display: show 45+X' or 90+X'
+            const extraMins = Math.floor((t - baseSecs) / 60);
+            const baseDisplay = matchState.currentHalf >= 2
+                ? (baseDuration + (matchState.currentHalf - 1) * baseDuration)
+                : baseDuration;
+            return `${baseDisplay}+${extraMins}'`;
+        }
+    };
+
     const startMatchClockTimer = () => {
         if (liveClockInterval) clearInterval(liveClockInterval);
 
         btnClockPlay.style.display = 'none';
         btnClockPause.style.display = 'block';
 
-        // Timestamp-based: calculate real elapsed time every second
-        // Works after page close/reopen — no counting, just math
         liveClockInterval = setInterval(() => {
             if (!matchState.timerRunning) return;
 
-            const elapsed = getElapsedSeconds();
-            matchState.currentTime = elapsed;
-            lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
+            matchState.currentTime += 1;
+            const t = matchState.currentTime;
+            const baseDuration = matchState.baseHalfDuration || matchState.duration || 45;
+            const baseSecs = baseDuration * 60;
+            const injuryMins = matchState.injuryMinutes || 0;
+            const totalSecs = baseSecs + (injuryMins * 60);
 
-            // Save to localStorage every 5 seconds to reduce writes
-            if (elapsed % 5 === 0) {
-                DB.saveMatchState(matchState);
-            }
+            // Update clock display
+            lblLiveTimer.textContent = getClockDisplay();
+            matchState.clockDisplay = getClockDisplay();
 
-            // Half-time boundary check
-            const halfSeconds = matchState.duration * 60;
-            if (elapsed >= halfSeconds && matchState.currentHalf === 1) {
+            // Save every 5 seconds
+            if (t % 5 === 0) DB.saveMatchState(matchState);
+
+            // ── AUTO-STOP LOGIC ──────────────────────────────────
+            if (t >= baseSecs && injuryMins === 0) {
+                // Reached regulation end — auto pause, wait for injury time input
+                matchState.currentTime = baseSecs; // freeze at exactly HH:MM
                 pauseClockTimer();
-                logMatchTimelineEvent('Half Time', 'info', { desc: 'First Half Complete' });
-                alert("First Half Finished! Press 'Next Half' to begin 2nd session.");
+                lblLiveTimer.textContent = DB.formatMatchTime(baseSecs);
+                const halfLabel = matchState.currentHalf >= 2 ? '2nd Half' : '1st Half';
+                logMatchTimelineEvent('Regulation End', 'info', {
+                    desc: `${halfLabel} regulation time complete. Use +1m to add injury time or press Next Half.`
+                });
+            } else if (injuryMins > 0 && t >= totalSecs) {
+                // Reached end of injury time — auto pause
+                pauseClockTimer();
+                logMatchTimelineEvent('Injury Time End', 'info', {
+                    desc: `+${injuryMins} minute injury time complete.`
+                });
             }
         }, 1000);
     };
 
     const pauseClockTimer = () => {
         matchState.timerRunning = false;
-        matchState.pauseStartAt = Date.now(); // record when pause began
-        matchState.currentTime = getElapsedSeconds(); // freeze time
         DB.saveMatchState(matchState);
-        // Save to server immediately on pause
-        if (window.apiFetch) {
-            window.apiFetch('/api/data/match_state', {
-                method: 'POST',
-                body: JSON.stringify({ data: matchState })
-            }).catch(() => {});
-        }
         btnClockPlay.style.display = 'block';
         btnClockPause.style.display = 'none';
     };
 
     // Clock Button Listeners
     btnClockPlay.addEventListener('click', () => {
-        // Accumulate pause duration before resuming
-        if (matchState.pauseStartAt) {
-            matchState.totalPausedMs = (matchState.totalPausedMs || 0) + (Date.now() - matchState.pauseStartAt);
-            matchState.pauseStartAt = null;
-        }
         matchState.timerRunning = true;
         DB.saveMatchState(matchState);
-        // Save to server on resume
-        if (window.apiFetch) {
-            window.apiFetch('/api/data/match_state', {
-                method: 'POST',
-                body: JSON.stringify({ data: matchState })
-            }).catch(() => {});
-        }
         startMatchClockTimer();
     });
 
@@ -371,700 +354,61 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseClockTimer();
     });
 
-    // +1m = extend half duration by 1 minute (injury/stoppage time)
+    // +1m = add 1 minute of injury/stoppage time
     document.getElementById('btn-clock-adjust-plus').addEventListener('click', () => {
-        matchState.duration = (matchState.duration || 45) + 1;
-        lblClockHalf.textContent = (matchState.currentHalf === 2 ? '2ND' : '1ST') + ' +' +
-            (matchState.duration - (matchState.currentHalf === 2 ? matchState.duration : matchState.duration) ) + '';
-        // Show how many extra minutes added above base
-        const base = matchState.baseHalfDuration || matchState.duration - 1;
-        if (!matchState.baseHalfDuration) matchState.baseHalfDuration = base;
-        const extra = matchState.duration - matchState.baseHalfDuration;
-        lblClockHalf.textContent = (matchState.currentHalf >= 2 ? '2ND' : '1ST') + (extra > 0 ? ' +' + extra + "'" : '');
+        matchState.baseHalfDuration = matchState.baseHalfDuration || matchState.duration || 45;
+        matchState.injuryMinutes = (matchState.injuryMinutes || 0) + 1;
+        const inj = matchState.injuryMinutes;
+        const halfLabel = matchState.currentHalf >= 2 ? '2ND' : '1ST';
+
+        // Update half badge to show injury time
+        lblClockHalf.textContent = halfLabel + " +" + inj + "'";
+
+        // If clock is paused at regulation end, auto-resume into injury time
+        const baseSecs = matchState.baseHalfDuration * 60;
+        if (!matchState.timerRunning && matchState.currentTime >= baseSecs - 2) {
+            matchState.timerRunning = true;
+            startMatchClockTimer();
+        }
+        lblLiveTimer.textContent = getClockDisplay();
         DB.saveMatchState(matchState);
     });
 
-    // -1m = reduce half duration
+    // -1m = reduce injury time
     document.getElementById('btn-clock-adjust-minus').addEventListener('click', () => {
-        const base = matchState.baseHalfDuration || matchState.duration;
-        matchState.duration = Math.max(base, (matchState.duration || 45) - 1);
-        const extra = matchState.duration - (matchState.baseHalfDuration || matchState.duration);
-        lblClockHalf.textContent = (matchState.currentHalf >= 2 ? '2ND' : '1ST') + (extra > 0 ? ' +' + extra + "'" : '');
+        matchState.injuryMinutes = Math.max(0, (matchState.injuryMinutes || 0) - 1);
+        const inj = matchState.injuryMinutes;
+        const halfLabel = matchState.currentHalf >= 2 ? '2ND' : '1ST';
+        lblClockHalf.textContent = inj > 0 ? halfLabel + " +" + inj + "'" : halfLabel;
+        lblLiveTimer.textContent = getClockDisplay();
         DB.saveMatchState(matchState);
     });
 
-    // Overlay time offset buttons — shift what displays on screen ±1 min
-    document.getElementById('btn-overlay-time-plus').addEventListener('click', () => {
-        if (matchState.kickoffAt) matchState.kickoffAt -= 60000;
-        else matchState.currentTime += 60;
-        const elapsed = getElapsedSeconds();
-        matchState.currentTime = elapsed;
-        lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
-        DB.saveMatchState(matchState);
-    });
-
-    document.getElementById('btn-overlay-time-minus').addEventListener('click', () => {
-        if (matchState.kickoffAt) matchState.kickoffAt += 60000;
-        else matchState.currentTime = Math.max(0, matchState.currentTime - 60);
-        const elapsed = Math.max(0, getElapsedSeconds());
-        matchState.currentTime = elapsed;
-        lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
-        DB.saveMatchState(matchState);
-    });
-
-    // ── HALF MANAGEMENT ─────────────────────────────────────────
-    function showFirstHalfButtons() {
-        document.getElementById('btn-next-half').style.display = 'inline-block';
-        document.getElementById('btn-end-match').style.display = 'none';
-        document.getElementById('btn-extra-time').style.display = 'none';
-        document.getElementById('btn-penalty-kicks').style.display = 'none';
-    }
-
-    function showSecondHalfButtons() {
-        document.getElementById('btn-next-half').style.display = 'none';
-        document.getElementById('btn-end-match').style.display = 'inline-block';
-        document.getElementById('btn-extra-time').style.display = 'inline-block';
-        document.getElementById('btn-penalty-kicks').style.display = 'inline-block';
-    }
-
-    // Next Half → go to 2nd half and show End/ExtraTime/Penalty buttons
+    // Next half control
     document.getElementById('btn-next-half').addEventListener('click', () => {
         pauseClockTimer();
         const halfSecs = matchState.duration * 60;
-        matchState.currentHalf = 2;
-        lblClockHalf.textContent = '2ND';
-        // Reset timer for 2nd half — new kickoff timestamp from now
-        matchState.kickoffAt = Date.now() - (halfSecs * 1000); // starts at half-time mark
-        matchState.totalPausedMs = 0;
-        matchState.pauseStartAt = Date.now();
-        matchState.timerRunning = false;
-        matchState.currentTime = halfSecs;
-        lblLiveTimer.textContent = DB.formatMatchTime(halfSecs);
-        showSecondHalfButtons();
-        logMatchTimelineEvent('2nd Half', 'info', { desc: 'Second Half Ready — Press Start Clock' });
+        
+        if (lblClockHalf.textContent === '1ST HALF') {
+            lblClockHalf.textContent = '2ND HALF';
+            matchState.currentTime = halfSecs; // seed to second session start
+            lblLiveTimer.textContent = DB.formatMatchTime(matchState.currentTime);
+            logMatchTimelineEvent('Second Half Kick-off', 'info', { desc: 'Second Session Started' });
+        } else {
+            lblClockHalf.textContent = '1ST HALF';
+            matchState.currentTime = 0;
+            lblLiveTimer.textContent = DB.formatMatchTime(0);
+        }
+        
         DB.saveMatchState(matchState);
     });
 
-    // End Match → show post-match screen
-    document.getElementById('btn-end-match').addEventListener('click', () => {
-        if (!confirm('End the match? This will stop the clock and finalise the result.')) return;
-
-        pauseClockTimer();
-        if (liveClockInterval) clearInterval(liveClockInterval);
-        matchState.status = 'finished';
-        matchState.timerRunning = false;
-        DB.saveMatchState(matchState);
-        logMatchTimelineEvent('Full Time', 'info', { desc: `Final Score: ${matchState.scoreA} - ${matchState.scoreB}` });
-        if (window.apiFetch) {
-            window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: matchState }) }).catch(() => {});
-        }
-
-        // Switch to post-match screen
-        wizardContainer.style.display = 'none';
-        liveDashboard.style.display = 'none';
-        const pmContainer = document.getElementById('post-match-container');
-        pmContainer.style.display = 'block';
-        // Scroll to top of content
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        // Populate summary
-        document.getElementById('pm-final-score').textContent =
-            matchState.scoreA + ' — ' + matchState.scoreB;
-        document.getElementById('pm-team-names').textContent =
-            (matchState.teamA?.name || 'Home') + ' vs ' + (matchState.teamB?.name || 'Away');
-
-        // Build match summary text
-        const s = matchState.stats || {};
-        document.getElementById('pm-summary-content').innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px 12px;align-items:center;">
-                <span style="text-align:right;color:#fff;">${matchState.scoreA}</span><span style="color:#6b7280;font-size:0.75rem;">Goals</span><span style="color:#fff;">${matchState.scoreB}</span>
-                <span style="text-align:right;">${s.shotsA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Shots</span><span>${s.shotsB||0}</span>
-                <span style="text-align:right;">${s.sotA||0}</span><span style="color:#6b7280;font-size:0.75rem;">On Target</span><span>${s.sotB||0}</span>
-                <span style="text-align:right;">${s.cornersA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Corners</span><span>${s.cornersB||0}</span>
-                <span style="text-align:right;">${s.ycA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Yellow Cards</span><span>${s.ycB||0}</span>
-                <span style="text-align:right;">${s.foulsA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Fouls</span><span>${s.foulsB||0}</span>
-            </div>`;
-    });
-
-    // Post-match broadcast triggers
-    window.postMatchTrigger = function(type) {
-        DB.triggerOverlayAnimation('config_update', { activeGraphic: type });
-        matchState.activeGraphic = type;
-        DB.saveMatchState(matchState);
-    };
-
-    // Register match stats to team records & start new match
-    document.getElementById('btn-pm-register').addEventListener('click', () => {
-        if (!confirm('Register this match result to team and player records?')) return;
-
-        const db = DB.getDb();
-        const sA = matchState.scoreA || 0;
-        const sB = matchState.scoreB || 0;
-        const stats = matchState.stats || {};
-
-        // Update team records
-        [matchState.teamA, matchState.teamB].forEach((team, idx) => {
-            if (!team) return;
-            const dbTeam = db.teams.find(t => t.id === team.id);
-            if (!dbTeam) return;
-            if (!dbTeam.record) dbTeam.record = { played:0, won:0, drew:0, lost:0, gf:0, ga:0 };
-            const goalsFor  = idx === 0 ? sA : sB;
-            const goalsAgainst = idx === 0 ? sB : sA;
-            dbTeam.record.played++;
-            dbTeam.record.gf += goalsFor;
-            dbTeam.record.ga += goalsAgainst;
-            if (goalsFor > goalsAgainst) dbTeam.record.won++;
-            else if (goalsFor === goalsAgainst) dbTeam.record.drew++;
-            else dbTeam.record.lost++;
-            // Add shots to team record
-            dbTeam.record.shots = (dbTeam.record.shots || 0) + (idx === 0 ? (stats.shotsA||0) : (stats.shotsB||0));
-            dbTeam.record.shotsOnTarget = (dbTeam.record.shotsOnTarget || 0) + (idx === 0 ? (stats.sotA||0) : (stats.sotB||0));
-        });
-
-        DB.saveDb(db);
-        alert('Match stats registered! Starting new match.');
-        resetAndStartNew();
-    });
-
-    // Discard and start new
-    document.getElementById('btn-pm-skip').addEventListener('click', () => {
-        if (confirm('Discard match data and start fresh?')) resetAndStartNew();
-    });
-
-    // ── PLAYER DISPLAY (MVP / Best GK / Hat-trick etc) ──────────
-    window.PlayerDisplay = {
-        _selectedAward: 'Man of the Match',
-
-        open() {
-            document.getElementById('player-display-modal').style.display = 'flex';
-            this._populatePlayers();
-            this._highlightAward(this._selectedAward);
-        },
-
-        close() {
-            document.getElementById('player-display-modal').style.display = 'none';
-        },
-
-        _highlightAward(award) {
-            this._selectedAward = award;
-            document.querySelectorAll('.pd-award-btn').forEach(b => {
-                b.style.outline = (b.dataset.award === award) ? '2px solid #ec4899' : 'none';
-            });
-            document.getElementById('pd-custom-title-wrap').style.display =
-                (award === 'Custom') ? 'block' : 'none';
-        },
-
-        _populatePlayers() {
-            const teamSel = document.getElementById('pd-team-select');
-            const playerSel = document.getElementById('pd-player-select');
-            const teamId = teamSel.value === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
-            const players = DB.getPlayers(teamId) || [];
-            playerSel.innerHTML = players.map(p =>
-                `<option value="${p.id}">#${p.number} ${p.name} (${p.position})</option>`
-            ).join('') || '<option value="">No players found</option>';
-        },
-
-        show() {
-            const teamSel = document.getElementById('pd-team-select');
-            const playerSel = document.getElementById('pd-player-select');
-            const teamId = teamSel.value === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
-            const team = DB.getDb().teams.find(t => t.id === teamId);
-            const player = DB.getPlayers(teamId).find(p => p.id === playerSel.value);
-            if (!player) return alert('No player selected.');
-
-            let award = this._selectedAward;
-            if (award === 'Custom') {
-                award = document.getElementById('pd-custom-title').value.trim() || 'Featured Player';
-            }
-
-            const photoUrl = DB.getPlayerAvatar(player, team);
-
-            matchState.playerDisplay = {
-                active: true,
-                award,
-                playerName: player.name,
-                playerNumber: player.number,
-                playerPosition: player.position,
-                teamName: team?.name || '',
-                photoUrl
-            };
-            matchState.activeGraphic = 'playerDisplay';
-            DB.saveMatchState(matchState);
-            if (window.apiFetch) {
-                window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
-            }
-            this.close();
-        },
-
-        clear() {
-            if (matchState.playerDisplay) matchState.playerDisplay.active = false;
-            if (matchState.activeGraphic === 'playerDisplay') matchState.activeGraphic = 'none';
-            DB.saveMatchState(matchState);
-            if (window.apiFetch) {
-                window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
-            }
-            this.close();
-        }
-    };
-
-    // Award button clicks
-    document.querySelectorAll('.pd-award-btn').forEach(btn => {
-        btn.addEventListener('click', () => PlayerDisplay._highlightAward(btn.dataset.award));
-    });
-
-    // Team select change -> repopulate players
-    document.getElementById('pd-team-select').addEventListener('change', () => PlayerDisplay._populatePlayers());
-
-    // Show button
-    document.getElementById('pd-show-btn').addEventListener('click', () => PlayerDisplay.show());
-
-    // Close on backdrop click
-    document.getElementById('player-display-modal').addEventListener('click', function(e) {
-        if (e.target === this) PlayerDisplay.close();
-    });
-
-    // ── PENALTY SHOOTOUT MANAGER ─────────────────────────────────
-    window.PenaltyShootout = {
-        _pendingTeam: null,
-        _activeTakers: { A: null, B: null }, // { id, name, photoUrl }
-
-        init() {
-            const p = matchState.penalties;
-            document.getElementById('pk-team-a-name').textContent = matchState.teamA?.name || 'Home';
-            document.getElementById('pk-team-b-name').textContent = matchState.teamB?.name || 'Away';
-            document.getElementById('pk-team-names').textContent =
-                (matchState.teamA?.name || 'Home') + ' vs ' + (matchState.teamB?.name || 'Away');
-
-            // Restore active taker UI if a taker was mid-selection
-            const tp = matchState.penaltyTakerPreview;
-            if (tp && tp.team) {
-                this._activeTakers[tp.team] = { id: null, name: tp.name, photoUrl: tp.photoUrl, teamName: tp.teamName };
-                const t = tp.team.toLowerCase();
-                document.getElementById('pk-taker-select-' + t).style.display = 'none';
-                document.getElementById('pk-taker-active-' + t).style.display = 'block';
-                document.getElementById('pk-taker-name-' + t).textContent = '#' + (tp.number||'') + ' ' + tp.name;
-                document.getElementById('pk-taker-photo-' + t).innerHTML =
-                    tp.photoUrl ? `<img src="${tp.photoUrl}" style="width:100%;height:100%;object-fit:cover;">` : '';
-            }
-
-            this.render();
-        },
-
-        render() {
-            const p = matchState.penalties;
-            const colA = document.getElementById('pk-rounds-a');
-            const colB = document.getElementById('pk-rounds-b');
-            colA.innerHTML = ''; colB.innerHTML = '';
-
-            const maxRounds = Math.max(5, p.roundsA.length, p.roundsB.length);
-            for (let i = 0; i < maxRounds; i++) {
-                colA.appendChild(this._roundRow(p.roundsA[i], i+1));
-                colB.appendChild(this._roundRow(p.roundsB[i], i+1));
-            }
-
-            const scoreA = p.roundsA.filter(r => r && r.result === 'goal').length;
-            const scoreB = p.roundsB.filter(r => r && r.result === 'goal').length;
-            document.getElementById('pk-score-display').textContent = scoreA + ' — ' + scoreB;
-
-            // Check for shootout winner (after round 5+, sudden death)
-            const status = this._checkWinner();
-            document.getElementById('pk-status-msg').textContent = status;
-
-            // Sync to overlay
-            DB.saveMatchState(matchState);
-            if (window.apiFetch) {
-                window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
-            }
-        },
-
-        _roundRow(entry, num) {
-            const div = document.createElement('div');
-            div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;font-size:0.8rem;';
-            if (!entry) {
-                div.innerHTML = `<span style="color:#6b7280;width:20px;">${num}</span><span style="color:#6b7280;flex:1;">—</span>`;
-            } else {
-                const icon = entry.result === 'goal' ? '⚽' : '❌';
-                const color = entry.result === 'goal' ? '#10b981' : '#ef4444';
-                div.innerHTML = `<span style="color:#6b7280;width:20px;">${num}</span>
-                    <span style="color:${color};">${icon}</span>
-                    <span style="color:#fff;flex:1;">${entry.player || ''}</span>`;
-            }
-            return div;
-        },
-
-        _checkWinner() {
-            const p = matchState.penalties;
-            const a = p.roundsA, b = p.roundsB;
-            const n = Math.min(a.length, b.length);
-            if (n < 5) return `Round ${Math.max(a.length, b.length, 1)} of 5`;
-
-            const scoreA = a.filter(r=>r.result==='goal').length;
-            const scoreB = b.filter(r=>r.result==='goal').length;
-
-            // Standard 5 rounds done, check decided early
-            const remA = 5 - a.length, remB = 5 - b.length;
-            if (n === 5) {
-                if (scoreA !== scoreB) return `🏆 ${scoreA > scoreB ? matchState.teamA?.name : matchState.teamB?.name} WIN ${scoreA}-${scoreB}!`;
-                return 'Sudden Death — Round ' + (n+1);
-            }
-            // Sudden death rounds (6+)
-            if (a.length === b.length && a.length > 5) {
-                if (scoreA !== scoreB) return `🏆 ${scoreA > scoreB ? matchState.teamA?.name : matchState.teamB?.name} WIN ${scoreA}-${scoreB}!`;
-                return 'Sudden Death — Round ' + (a.length+1);
-            }
-            return `Round ${Math.max(a.length,b.length)} of ${a.length===b.length?5:'SD'}`;
-        },
-
-        // Step 1: open modal to pick which player is about to take the kick
-        // Get players who already took a kick in the current 5-player cycle
-        _usedTakerIds(team) {
-            const rounds = team === 'A' ? matchState.penalties.roundsA : matchState.penalties.roundsB;
-            const cycleLen = 5;
-            const cycleIndex = Math.floor((rounds.length) / cycleLen); // which cycle we're in
-            const cycleStart = cycleIndex * cycleLen;
-            return rounds.slice(cycleStart).map(r => r.playerId).filter(Boolean);
-        },
-
-        openTakerModal(team) {
-            this._pendingTeam = team;
-            const teamId = team === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
-            const players = DB.getPlayers(teamId) || [];
-            const used = this._usedTakerIds(team);
-            const available = players.filter(p => !used.includes(p.id));
-            const pool = available.length > 0 ? available : players; // if all used, full list re-appears (new cycle)
-
-            const sel = document.getElementById('pk-player-select');
-            sel.innerHTML = pool.map(p => `<option value="${p.id}|${p.name}">#${p.number} ${p.name}</option>`).join('')
-                || '<option value="|Unknown">Unknown Player</option>';
-            document.getElementById('pk-modal-title').textContent =
-                `🎯 Select Penalty Taker — ${team === 'A' ? matchState.teamA?.name : matchState.teamB?.name}`;
-            document.getElementById('pk-player-modal').style.display = 'flex';
-        },
-
-        // Step 2: confirm taker -> shows on overlay as "preparing", shows Goal/Miss buttons
-        confirmTaker() {
-            const sel = document.getElementById('pk-player-select');
-            const [pid, pname] = sel.value.split('|');
-            const team = this._pendingTeam;
-            const teamId = team === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
-            const teamObj = team === 'A' ? matchState.teamA : matchState.teamB;
-            const player = DB.getPlayers(teamId).find(p => p.id === pid);
-            const photoUrl = player ? DB.getPlayerAvatar(player, teamObj) : '';
-
-            this._activeTakers[team] = { id: pid, name: pname, photoUrl, teamName: teamObj?.name || '' };
-
-            // Update UI: hide select button, show active taker + goal/miss
-            document.getElementById('pk-taker-select-' + team.toLowerCase()).style.display = 'none';
-            const activeBox = document.getElementById('pk-taker-active-' + team.toLowerCase());
-            activeBox.style.display = 'block';
-            document.getElementById('pk-taker-name-' + team.toLowerCase()).textContent = '#' + (player?.number||'') + ' ' + pname;
-            document.getElementById('pk-taker-photo-' + team.toLowerCase()).innerHTML =
-                photoUrl ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;">` : '';
-
-            document.getElementById('pk-player-modal').style.display = 'none';
-
-            // Push "preparing" state to overlay
-            matchState.penaltyTakerPreview = { team, name: pname, number: player?.number, photoUrl, teamName: teamObj?.name||'' };
-            matchState.activeGraphic = 'penaltyTaker';
-            DB.saveMatchState(matchState);
-            if (window.apiFetch) {
-                window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
-            }
-        },
-
-        // Cancel taker selection (before goal/miss pressed)
-        cancelTaker(team) {
-            this._activeTakers[team] = null;
-            document.getElementById('pk-taker-select-' + team.toLowerCase()).style.display = 'block';
-            document.getElementById('pk-taker-active-' + team.toLowerCase()).style.display = 'none';
-            matchState.penaltyTakerPreview = null;
-            matchState.activeGraphic = 'penalty';
-            DB.saveMatchState(matchState);
-        },
-
-        // Step 3: register goal or miss for the currently selected taker
-        registerResult(team, result) {
-            const taker = this._activeTakers[team];
-            if (!taker) return;
-
-            const entry = { result, player: taker.name, playerId: taker.id, photoUrl: taker.photoUrl };
-            if (team === 'A') matchState.penalties.roundsA.push(entry);
-            else matchState.penalties.roundsB.push(entry);
-
-            // Update player stats
-            if (taker.id) {
-                const player = DB.getPlayers().find(p => p.id === taker.id);
-                if (player) {
-                    const stats = { ...(player.stats||{}) };
-                    if (result === 'goal') { stats.goals = (stats.goals||0)+1; stats.shotsOnTarget = (stats.shotsOnTarget||0)+1; }
-                    stats.shots = (stats.shots||0) + 1;
-                    DB.updatePlayer(taker.id, { stats });
-                }
-            }
-
-            // Push result announcement to overlay
-            matchState.penaltyResultAnnounce = {
-                team, name: taker.name, teamName: taker.teamName, photoUrl: taker.photoUrl,
-                result, ts: Date.now()
-            };
-            matchState.activeGraphic = 'penalty';
-            matchState.penaltyTakerPreview = null;
-
-            // Reset UI for this team back to "select taker"
-            this._activeTakers[team] = null;
-            document.getElementById('pk-taker-select-' + team.toLowerCase()).style.display = 'block';
-            document.getElementById('pk-taker-active-' + team.toLowerCase()).style.display = 'none';
-
-            this.render();
-        },
-
-        undo() {
-            const p = matchState.penalties;
-            const lastA = p.roundsA.length, lastB = p.roundsB.length;
-            if (lastA === 0 && lastB === 0) return;
-            // Remove from whichever team has more entries (last action)
-            if (lastA >= lastB) p.roundsA.pop(); else p.roundsB.pop();
-            this.render();
-        },
-
-        showOverlay() {
-            matchState.activeGraphic = 'penalty';
-            DB.saveMatchState(matchState);
-            if (window.apiFetch) {
-                window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
-            }
-        },
-
-        hideOverlay() {
-            matchState.activeGraphic = 'none';
-            DB.saveMatchState(matchState);
-            if (window.apiFetch) {
-                window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
-            }
-        }
-    };
-
-    // Goal / Miss button clicks
-    document.querySelectorAll('.pk-select-taker-btn').forEach(btn => {
-        btn.addEventListener('click', () => PenaltyShootout.openTakerModal(btn.dataset.team));
-    });
-    document.querySelectorAll('.pk-cancel-taker-btn').forEach(btn => {
-        btn.addEventListener('click', () => PenaltyShootout.cancelTaker(btn.dataset.team));
-    });
-    document.querySelectorAll('.pk-goal-btn').forEach(btn => {
-        btn.addEventListener('click', () => PenaltyShootout.registerResult(btn.dataset.team, 'goal'));
-    });
-    document.querySelectorAll('.pk-miss-btn').forEach(btn => {
-        btn.addEventListener('click', () => PenaltyShootout.registerResult(btn.dataset.team, 'miss'));
-    });
-
-    // Cards / fouls during shootout — now with player selection
-    PenaltyShootout._pendingCardAction = null; // {team, type: 'yellow'|'red'|'foul'}
-
-    function openCardPlayerModal(team, type) {
-        PenaltyShootout._pendingCardAction = { team, type };
-        const teamId = team === 'A' ? matchState.teamA?.id : matchState.teamB?.id;
-        const players = DB.getPlayers(teamId) || [];
-        const sel = document.getElementById('pk-card-player-select');
-        sel.innerHTML = players.map(p => `<option value="${p.id}|${p.name}">#${p.number} ${p.name}</option>`).join('')
-            || '<option value="|Unknown">Unknown Player</option>';
-        const labels = { yellow: '🟨 Yellow Card', red: '🟥 Red Card', foul: 'Foul' };
-        const teamObj = team === 'A' ? matchState.teamA : matchState.teamB;
-        document.getElementById('pk-card-modal-title').textContent =
-            `${labels[type]} — ${teamObj?.name || 'Team'}`;
-        document.getElementById('pk-card-modal').style.display = 'flex';
-    }
-
-    document.querySelectorAll('.pk-card-btn').forEach(btn => {
-        btn.addEventListener('click', () => openCardPlayerModal(btn.dataset.team, btn.dataset.card));
-    });
-    document.querySelectorAll('.pk-foul-btn').forEach(btn => {
-        btn.addEventListener('click', () => openCardPlayerModal(btn.dataset.team, 'foul'));
-    });
-
-    document.getElementById('pk-card-modal-confirm').addEventListener('click', () => {
-        const action = PenaltyShootout._pendingCardAction;
-        if (!action) return;
-        const sel = document.getElementById('pk-card-player-select');
-        const [pid, pname] = sel.value.split('|');
-        const teamObj = action.team === 'A' ? matchState.teamA : matchState.teamB;
-
-        // Update player stats
-        if (pid) {
-            const player = DB.getPlayers().find(p => p.id === pid);
-            if (player) {
-                const stats = { ...(player.stats||{}) };
-                if (action.type === 'yellow') stats.yellowCards = (stats.yellowCards||0) + 1;
-                else if (action.type === 'red') stats.redCards = (stats.redCards||0) + 1;
-                else stats.fouls = (stats.fouls||0) + 1;
-                DB.updatePlayer(pid, { stats });
-            }
-        }
-
-        // Log timeline event with player name
-        const labels = { yellow: 'Yellow Card', red: 'Red Card', foul: 'Foul' };
-        logMatchTimelineEvent(labels[action.type], action.type === 'foul' ? 'info' : action.type,
-            { desc: `${pname} (${teamObj?.name || 'Team'}) — Penalty Shootout` });
-
-        // Trigger overlay card announcement (yellow/red only, not generic fouls)
-        if (action.type === 'yellow' || action.type === 'red') {
-            const player = DB.getPlayers().find(p => p.id === pid);
-            const photoUrl = player ? DB.getPlayerAvatar(player, teamObj) : '';
-            DB.triggerOverlayAnimation('card', {
-                cardType: action.type,
-                playerName: pname,
-                playerNumber: player?.number,
-                teamName: teamObj?.name,
-                photoUrl
-            });
-        }
-
-        DB.saveMatchState(matchState);
-        if (window.apiFetch) {
-            window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
-        }
-
-        document.getElementById('pk-card-modal').style.display = 'none';
-        PenaltyShootout._pendingCardAction = null;
-    });
-
-    document.getElementById('pk-card-modal-cancel').addEventListener('click', () => {
-        document.getElementById('pk-card-modal').style.display = 'none';
-        PenaltyShootout._pendingCardAction = null;
-    });
-
-    document.getElementById('pk-modal-confirm').addEventListener('click', () => PenaltyShootout.confirmTaker());
-    document.getElementById('pk-modal-cancel').addEventListener('click', () => {
-        document.getElementById('pk-player-modal').style.display = 'none';
-    });
-    document.getElementById('pk-undo').addEventListener('click', () => PenaltyShootout.undo());
-    document.getElementById('pk-show-overlay').addEventListener('click', () => PenaltyShootout.showOverlay());
-    document.getElementById('pk-hide-overlay').addEventListener('click', () => PenaltyShootout.hideOverlay());
-
-    // End match from penalty shootout → go to post-match screen
-    document.getElementById('pk-end-shootout').addEventListener('click', () => {
-        if (!confirm('End the match with this penalty result?')) return;
-        const p = matchState.penalties;
-        const scoreA = p.roundsA.filter(r=>r.result==='goal').length;
-        const scoreB = p.roundsB.filter(r=>r.result==='goal').length;
-
-        matchState.status = 'finished';
-        logMatchTimelineEvent('Penalty Shootout Result', 'info',
-            { desc: `${matchState.teamA?.name} ${scoreA} - ${scoreB} ${matchState.teamB?.name} (Penalties)` });
-        DB.saveMatchState(matchState);
-        if (window.apiFetch) {
-            window.apiFetch('/api/data/match_state', { method:'POST', body: JSON.stringify({ data: matchState }) }).catch(()=>{});
-        }
-
-        document.getElementById('penalty-shootout-container').style.display = 'none';
-        const pmContainer = document.getElementById('post-match-container');
-        pmContainer.style.display = 'block';
-        document.getElementById('pm-final-score').textContent = matchState.scoreA + ' — ' + matchState.scoreB;
-        document.getElementById('pm-team-names').textContent =
-            (matchState.teamA?.name || 'Home') + ' vs ' + (matchState.teamB?.name || 'Away') +
-            ` (Pens: ${scoreA}-${scoreB})`;
-        const s = matchState.stats || {};
-        document.getElementById('pm-summary-content').innerHTML = `
-            <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px 12px;align-items:center;">
-                <span style="text-align:right;color:#fff;">${matchState.scoreA}</span><span style="color:#6b7280;font-size:0.75rem;">Goals</span><span style="color:#fff;">${matchState.scoreB}</span>
-                <span style="text-align:right;color:#8b5cf6;">${scoreA}</span><span style="color:#6b7280;font-size:0.75rem;">Penalties</span><span style="color:#8b5cf6;">${scoreB}</span>
-                <span style="text-align:right;">${s.shotsA||0}</span><span style="color:#6b7280;font-size:0.75rem;">Shots</span><span>${s.shotsB||0}</span>
-                <span style="text-align:right;">${s.sotA||0}</span><span style="color:#6b7280;font-size:0.75rem;">On Target</span><span>${s.sotB||0}</span>
-            </div>`;
-        window.scrollTo({ top:0, behavior:'smooth' });
-    });
-
-    function resetAndStartNew() {
-        document.getElementById('post-match-container').style.display = 'none';
-        document.getElementById('penalty-shootout-container').style.display = 'none';
-        wizardContainer.style.display = 'block';
-        DB.resetMatchState();
-        if (window.apiFetch) {
-            window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: null }) }).catch(() => {});
-        }
-        matchState = DB.getMatchState();
-        showFirstHalfButtons();
-        document.getElementById('btn-next-half').textContent = 'Next Half';
-        lblLiveTimer.textContent = '00:00';
-        lblClockHalf.textContent = '1ST';
-        wizardContainer.style.display = 'block';
-        initWizard();
-        gotoStep(1);
-    }
-
-    // Extra Time — open modal
-    document.getElementById('btn-extra-time').addEventListener('click', () => {
-        document.getElementById('extra-time-modal').style.display = 'flex';
-        document.getElementById('et-minutes-input').value = 15;
-    });
-
-    // Confirm Extra Time kick-off
-    document.getElementById('btn-confirm-extra-time').addEventListener('click', () => {
-        const mins = parseInt(document.getElementById('et-minutes-input').value) || 15;
-        if (!confirm(`Start Extra Time — ${mins} minutes per half?`)) return;
-        document.getElementById('extra-time-modal').style.display = 'none';
-
-        matchState.currentHalf = 3; // ET 1st half
-        matchState.duration = mins;
-        matchState.kickoffAt = Date.now();
-        matchState.totalPausedMs = 0;
-        matchState.pauseStartAt = null;
-        matchState.timerRunning = true;
-        matchState.currentTime = 0;
-        lblClockHalf.textContent = 'ET1';
-        lblLiveTimer.textContent = '00:00';
-        // Show same controls as regular play
-        showFirstHalfButtons();
-        document.getElementById('btn-next-half').textContent = 'ET 2nd Half';
-        startMatchClockTimer();
-        logMatchTimelineEvent('Extra Time', 'info', { desc: `Extra Time Started — ${mins} mins/half` });
-        DB.saveMatchState(matchState);
-        if (window.apiFetch) {
-            window.apiFetch('/api/data/match_state', { method: 'POST', body: JSON.stringify({ data: matchState }) }).catch(() => {});
-        }
-    });
-
-    // Penalty Kicks → open dedicated shootout panel
-    document.getElementById('btn-penalty-kicks').addEventListener('click', () => {
-        if (!confirm('Start Penalty Shootout? This will stop the match clock and open the shootout panel.')) return;
-        if (liveClockInterval) clearInterval(liveClockInterval);
-        pauseClockTimer();
-        matchState.currentHalf = 5;
-        matchState.status = 'penalties';
-        if (!matchState.penalties) {
-            matchState.penalties = { roundsA: [], roundsB: [], round: 1 };
-        }
-        DB.saveMatchState(matchState);
-        logMatchTimelineEvent('Penalty Shootout', 'info', { desc: 'Penalty Shootout Started' });
-
-        wizardContainer.style.display = 'none';
-        liveDashboard.style.display = 'none';
-        document.getElementById('penalty-shootout-container').style.display = 'block';
-        PenaltyShootout.init();
-    });
-
-    // Reset match — clear state and go back to wizard without page reload
+    // Hard Match resets
     document.getElementById('btn-reset-match-control').addEventListener('click', () => {
-        if (confirm('Reset match? This clears score, clock, and all events.')) {
+        if (confirm("Reset current match stream? This will erase all score logs and clock progress!")) {
             if (liveClockInterval) clearInterval(liveClockInterval);
             DB.resetMatchState();
-            // Clear server match state
-            if (window.apiFetch) {
-                window.apiFetch('/api/data/match_state', {
-                    method: 'POST',
-                    body: JSON.stringify({ data: null })
-                }).catch(() => {});
-            }
-            // Reset UI without page reload
-            matchState = DB.getMatchState();
-            liveDashboard.style.display = 'none';
-            wizardContainer.style.display = 'block';
-            showFirstHalfButtons();
-            document.getElementById('btn-next-half').textContent = 'Next Half';
-            lblLiveTimer.textContent = '00:00';
-            lblClockHalf.textContent = '1ST';
-            initWizard();
-            gotoStep(1);
+            location.reload();
         }
     });
 
@@ -1105,22 +449,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         players.forEach(p => {
-            const row = document.createElement('div');
-            row.className = 'player-picker-row';
-            row.dataset.playerid = p.id;
-            row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;cursor:pointer;transition:background 0.15s;width:100%;box-sizing:border-box;';
-            row.innerHTML = `
-                <div style="font-size:1.1rem;font-weight:900;color:var(--color-accent);min-width:32px;text-align:center;">${p.number}</div>
-                <div style="flex:1;color:#fff;font-weight:600;font-size:0.9rem;">${p.name}</div>
-                <div style="font-size:0.75rem;color:#9ca3af;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px;">${p.position}</div>
+            const card = document.createElement('div');
+            card.className = 'player-picker-card';
+            card.dataset.playerid = p.id;
+
+            card.innerHTML = `
+                <div class="player-picker-avatar">
+                    <img src="${DB.getPlayerAvatar(p, teamObj)}" />
+                </div>
+                <div class="player-picker-name">${p.name}</div>
+                <div class="player-picker-num">Squad #${p.number} • ${p.position}</div>
             `;
-            row.addEventListener('mouseenter', () => row.style.background = 'rgba(255,255,255,0.08)');
-            row.addEventListener('mouseleave', () => row.style.background = 'rgba(255,255,255,0.04)');
 
-            listContainer.appendChild(row);
+            listContainer.appendChild(card);
 
-            // Row click selector
-            row.addEventListener('click', () => {
+            // Card Click selector
+            card.addEventListener('click', () => {
                 executeRosterRegisteredAction(p);
                 closeSelectPlayerModal();
             });
@@ -1480,57 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindGraphicToggleSwitch('toggle-graphic-vs', 'vs');
     bindGraphicToggleSwitch('toggle-graphic-stats', 'stats');
 
-    // ─── PAGE LOAD: RESTORE SESSION FROM SERVER ─────────────
-    async function initPage() {
-        if (window.apiFetch) {
-            try {
-                const res = await window.apiFetch('/api/data/match_state');
-                const data = await res.json();
-                if (data.data && data.data.status === 'live') {
-                    matchState = data.data;
-                    DB.saveMatchState(matchState);
-                }
-            } catch(e) {
-                console.warn('Server load failed, using local state:', e);
-            }
-        }
-
-        initWizard();
-
-        if (matchState && matchState.status === 'live') {
-            wizardContainer.style.display = 'none';
-            liveDashboard.style.display = 'grid';
-            loadLiveControlPanelData();
-
-            // Recalculate real elapsed time from kickoff timestamp
-            const elapsed = getElapsedSeconds();
-            matchState.currentTime = elapsed;
-            lblLiveTimer.textContent = DB.formatMatchTime(elapsed);
-            lblClockHalf.textContent = (matchState.currentHalf === 2) ? '2ND' : '1ST';
-
-            if (matchState.timerRunning) {
-                startMatchClockTimer();
-            } else {
-                btnClockPlay.style.display = 'block';
-                btnClockPause.style.display = 'none';
-            }
-            // Restore correct half buttons
-            if (matchState.currentHalf >= 2) {
-                showSecondHalfButtons();
-            } else {
-                showFirstHalfButtons();
-            }
-
-            // Restore penalty shootout panel if mid-shootout
-            if (matchState.status === 'penalties' && matchState.penalties) {
-                liveDashboard.style.display = 'none';
-                document.getElementById('penalty-shootout-container').style.display = 'block';
-                PenaltyShootout.init();
-            }
-        } else {
-            gotoStep(1);
-        }
-    }
-
-    initPage();
+    // Run wizard step 1
+    initWizard();
+    gotoStep(1);
 });
